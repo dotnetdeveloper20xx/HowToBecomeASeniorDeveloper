@@ -3185,3 +3185,967 @@ app.Run(async context => { Console.WriteLine("Run"); });
 ## Conclusion
 
 This guide provides a complete understanding of Middleware and Error Handling in ASP.NET Core, including custom middleware, request/response logging, and centralized error handling. Mastering middleware is essential for building robust, maintainable APIs.
+
+# Middleware and Error Handling in ASP.NET Core - Complete Guide
+
+## Introduction
+
+Middleware is a key component of the ASP.NET Core request pipeline. It allows you to process HTTP requests and responses, making it essential for implementing cross-cutting concerns such as logging, authentication, and error handling.
+
+This guide covers:
+
+1. Understanding Middleware in ASP.NET Core
+2. Building Custom Middleware
+3. Implementing Request and Response Logging Middleware
+4. Implementing Centralized Error Handling Middleware
+5. Implementing Global Exception Handling with Problem Details
+6. Best Practices for Middleware and Error Handling
+7. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding Middleware
+
+### What is Middleware?
+
+* Middleware is a component that processes HTTP requests and responses in the ASP.NET Core request pipeline.
+* It is executed in sequence, and each middleware can decide whether to pass the request to the next component.
+
+### How Middleware Works:
+
+* Middleware is added in the `Program.cs` (or Startup.cs) file.
+* Each middleware can perform actions before and after the request is processed.
+
+### Example Middleware Pipeline
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+// Adding Middleware
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Request received");
+    await next();
+    Console.WriteLine("Response sent");
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Hello, World!");
+});
+
+app.Run();
+```
+
+### Output:
+
+```
+Request received
+Response sent
+```
+
+### Why Use Middleware?
+
+* Adds flexibility to process requests and responses.
+* Allows cross-cutting concerns (logging, authentication, error handling).
+
+---
+
+## Chapter 2: Building Custom Middleware
+
+### What is Custom Middleware?
+
+* Custom Middleware is a reusable component that you create to process requests and responses in the pipeline.
+
+### How to Create Custom Middleware
+
+```csharp
+using System.Threading.Tasks;
+
+public class RequestLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public RequestLoggingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+        await _next(context);
+        Console.WriteLine($"Response: {context.Response.StatusCode}");
+    }
+}
+
+// Extension Method for Middleware
+public static class RequestLoggingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<RequestLoggingMiddleware>();
+    }
+}
+```
+
+---
+
+## Chapter 3: Implementing Centralized Error Handling Middleware
+
+### Why Use Centralized Error Handling?
+
+* Ensures consistent error responses for all API endpoints.
+* Prevents unhandled exceptions from crashing the application.
+
+### Error Handling Middleware
+
+```csharp
+public class ErrorHandlingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public ErrorHandlingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = 500;
+
+        var errorResponse = new { message = "An error occurred.", detail = exception.Message };
+        return context.Response.WriteAsJsonAsync(errorResponse);
+    }
+}
+```
+
+---
+
+## Chapter 4: Implementing Global Exception Handling with Problem Details
+
+### What is Problem Details?
+
+* Problem Details is a standardized format for error responses in HTTP APIs.
+* Defined by RFC 7807 ([https://datatracker.ietf.org/doc/html/rfc7807](https://datatracker.ietf.org/doc/html/rfc7807)).
+
+### Code Example
+
+```csharp
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.ContentType = "application/problem+json";
+        context.Response.StatusCode = 500;
+
+        var problemDetails = new ProblemDetails
+        {
+            Title = "An unexpected error occurred.",
+            Status = context.Response.StatusCode,
+            Detail = "Please try again later."
+        };
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
+    });
+});
+```
+
+### Why Use Problem Details?
+
+* Provides a consistent, standardized error response format.
+* Easy to extend with custom properties (e.g., trace ID).
+
+---
+
+## Chapter 5: Difference between Use, Run, and Map
+
+* `Use`: Adds middleware that can pass requests to the next middleware.
+* `Run`: Adds a terminal middleware that stops the pipeline.
+* `Map`: Creates branching logic in the middleware pipeline.
+
+### Example:
+
+```csharp
+app.Use(async (context, next) => { Console.WriteLine("Use"); await next(); });
+app.Run(async context => { Console.WriteLine("Run"); });
+```
+
+---
+
+## Chapter 6: Why Use Error Handling Middleware?
+
+* Provides consistent error responses for all endpoints.
+* Prevents unhandled exceptions from crashing the app.
+* Centralizes error handling logic in one place.
+
+---
+## Conclusion
+
+This guide provides a complete understanding of Middleware and Error Handling in ASP.NET Core, including custom middleware, request/response logging, centralized error handling, and Global Exception Handling with Problem Details. Mastering middleware is essential for building robust, maintainable APIs.
+
+# Middleware and Error Handling in ASP.NET Core - Complete Guide
+
+## Introduction
+
+Middleware is a key component of the ASP.NET Core request pipeline. It allows you to process HTTP requests and responses, making it essential for implementing cross-cutting concerns such as logging, authentication, and error handling.
+
+This guide covers:
+
+1. Understanding Middleware in ASP.NET Core
+2. Building Custom Middleware
+3. Implementing Request and Response Logging Middleware
+4. Implementing Centralized Error Handling Middleware
+5. Implementing Global Exception Handling with Problem Details
+6. Error Logging with Serilog (Console, File, Seq)
+7. Best Practices for Middleware and Error Handling
+8. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding Middleware
+
+### What is Middleware?
+
+* Middleware is a component that processes HTTP requests and responses in the ASP.NET Core request pipeline.
+* It is executed in sequence, and each middleware can decide whether to pass the request to the next component.
+
+### How Middleware Works:
+
+* Middleware is added in the `Program.cs` (or Startup.cs) file.
+* Each middleware can perform actions before and after the request is processed.
+
+---
+
+## Chapter 2: Building Custom Middleware
+
+### What is Custom Middleware?
+
+* Custom Middleware is a reusable component that you create to process requests and responses in the pipeline.
+
+### How to Create Custom Middleware
+
+```csharp
+using System.Threading.Tasks;
+
+public class RequestLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public RequestLoggingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+        await _next(context);
+        Console.WriteLine($"Response: {context.Response.StatusCode}");
+    }
+}
+```
+
+---
+
+## Chapter 3: Error Logging with Serilog (Console, File, Seq)
+
+### Why Use Serilog?
+
+* Serilog is a powerful logging library for .NET that supports various sinks (Console, File, Seq).
+
+### Installing Serilog
+
+```bash
+dotnet add package Serilog.AspNetCore
+```
+
+### Configuring Serilog in Program.cs
+
+```csharp
+using Serilog;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .WriteTo.Console()
+        .WriteTo.File("logs/app_log.txt", rollingInterval: RollingInterval.Day)
+        .WriteTo.Seq("http://localhost:5341");
+});
+
+var app = builder.Build();
+
+app.UseSerilogRequestLogging();
+app.MapGet("/", () => "Hello, World!");
+app.Run();
+```
+
+### How This Works:
+
+* Console: Logs to the console window.
+* File: Logs to a text file (rotates daily).
+* Seq: Logs to a Seq server (HTTP-based logging platform).
+
+### Setting Up Seq (Optional)
+
+* Install Seq from [https://datalust.co/seq](https://datalust.co/seq).
+* Start Seq server on [http://localhost:5341](http://localhost:5341).
+* Monitor and search logs in the Seq dashboard.
+
+### Example Logs:
+
+```
+2023-05-08 12:00:00 [INF] HTTP GET / responded 200 in 10ms
+2023-05-08 12:00:10 [ERR] An error occurred: NullReferenceException
+```
+
+### Best Practices for Serilog
+
+* Use rolling file logs for persistent logging.
+* Use Seq for centralized, searchable logs.
+* Avoid logging sensitive information (passwords, secrets).
+
+---
+
+## Chapter 4: Implementing Centralized Error Handling Middleware
+
+* Ensures consistent error responses for all API endpoints.
+* Prevents unhandled exceptions from crashing the application.
+
+---
+
+## Chapter 5: Implementing Global Exception Handling with Problem Details
+
+* Provides a standardized format for error responses in HTTP APIs.
+
+---
+
+## Chapter 6: Best Practices for Middleware and Error Handling
+
+* Keep middleware logic simple and focused.
+* Use centralized error handling for consistent responses.
+* Log errors with detailed context (request URL, headers).
+* Avoid logging sensitive information.
+* Use Serilog with Console, File, and Seq for flexible logging.
+
+---
+
+## Chapter 7: Interview Questions
+
+1. **What is Middleware in ASP.NET Core?**
+2. **How do you create Custom Middleware?**
+3. **How do you implement centralized error handling in ASP.NET Core?**
+4. **What is the difference between Use, Run, and Map in Middleware?**
+5. **Why should you use Error Handling Middleware?**
+6. **How do you set up Serilog with Console, File, and Seq in ASP.NET Core?**
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of Middleware and Error Handling in ASP.NET Core, including custom middleware, request/response logging, centralized error handling, global exception handling with Problem Details, and error logging with Serilog (Console, File, Seq).
+
+
+# Building a Real-time Chat Application with SignalR in ASP.NET Core
+
+## Introduction
+
+SignalR is a real-time communication library for ASP.NET Core that allows you to build real-time web applications such as chat applications, notifications, and collaborative tools.
+
+This guide will cover:
+
+1. Understanding SignalR and Real-time Communication
+2. Setting Up the SignalR Project
+3. Building the Real-time Chat Hub
+4. Creating the Chat Client (HTML + JavaScript)
+5. Configuring SignalR in ASP.NET Core
+6. Advanced Features (User Connections, Private Messaging)
+7. Best Practices for Real-time Applications
+8. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding SignalR and Real-time Communication
+
+### What is SignalR?
+
+* SignalR is a real-time communication library for ASP.NET Core that enables bi-directional communication between the server and clients.
+* It uses WebSockets for efficient communication but can fall back to other techniques (SSE, Long Polling) if WebSockets are not available.
+
+### Why Use SignalR?
+
+* Enables real-time updates (chat, notifications, dashboards).
+* Scales easily with Azure SignalR Service.
+* Supports various client types (Web, Mobile, Desktop).
+
+---
+
+## Chapter 2: Setting Up the SignalR Project
+
+### Create a New ASP.NET Core Project
+
+```bash
+mkdir RealTimeChatApp
+cd RealTimeChatApp
+dotnet new web -n RealTimeChatApp
+```
+
+### Install SignalR Package
+
+```bash
+dotnet add package Microsoft.AspNetCore.SignalR
+```
+
+---
+
+## Chapter 3: Building the Real-time Chat Hub
+
+### Creating the Chat Hub
+
+```csharp
+using Microsoft.AspNetCore.SignalR;
+using System.Threading.Tasks;
+
+public class ChatHub : Hub
+{
+    public async Task SendMessage(string user, string message)
+    {
+        await Clients.All.SendAsync("ReceiveMessage", user, message);
+    }
+}
+```
+
+### How This Works:
+
+* The `SendMessage` method broadcasts a message to all connected clients using `Clients.All`.
+* Clients receive the message using the `ReceiveMessage` method.
+
+---
+
+## Chapter 4: Configuring SignalR in ASP.NET Core
+
+### Configure SignalR in Program.cs
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapHub<ChatHub>("/chatHub");
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.Run();
+```
+
+### Adding SignalR Client Library
+
+* In your HTML client file, include SignalR client script:
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.5/signalr.min.js"></script>
+```
+
+---
+
+## Chapter 5: Creating the Chat Client (HTML + JavaScript)
+
+### HTML Code (chat.html)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-time Chat</title>
+</head>
+<body>
+    <input type="text" id="user" placeholder="Enter your name">
+    <input type="text" id="message" placeholder="Enter your message">
+    <button onclick="sendMessage()">Send</button>
+
+    <div id="chat"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.5/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .build();
+
+        connection.on("ReceiveMessage", (user, message) => {
+            const chatDiv = document.getElementById("chat");
+            chatDiv.innerHTML += `<p><strong>${user}:</strong> ${message}</p>`;
+        });
+
+        connection.start().catch(err => console.error(err.toString()));
+
+        function sendMessage() {
+            const user = document.getElementById("user").value;
+            const message = document.getElementById("message").value;
+            connection.invoke("SendMessage", user, message).catch(err => console.error(err));
+        }
+    </script>
+</body>
+</html>
+```
+
+### How This Works:
+
+* The client connects to the SignalR hub using WebSockets.
+* When the user sends a message, it is sent to the server.
+* The server broadcasts the message to all connected clients.
+
+---
+
+## Chapter 6: Advanced Features
+
+### Private Messaging
+
+* Modify the Hub to support private messaging:
+
+```csharp
+public async Task SendPrivateMessage(string connectionId, string message)
+{
+    await Clients.Client(connectionId).SendAsync("ReceiveMessage", "Private", message);
+}
+```
+
+### Managing User Connections
+
+* Use `OnConnectedAsync` and `OnDisconnectedAsync` to track connected users.
+
+```csharp
+private static Dictionary<string, string> Users = new Dictionary<string, string>();
+
+public override async Task OnConnectedAsync()
+{
+    string connectionId = Context.ConnectionId;
+    Users[connectionId] = "Anonymous";
+    await base.OnConnectedAsync();
+}
+
+public override async Task OnDisconnectedAsync(Exception exception)
+{
+    Users.Remove(Context.ConnectionId);
+    await base.OnDisconnectedAsync(exception);
+}
+```
+
+---
+
+## Chapter 7: Best Practices for Real-time Applications
+
+* Use WebSockets as the primary transport for SignalR.
+* Implement user authentication for secure chat.
+* Use Azure SignalR Service for scalable applications.
+* Limit message size to prevent abuse.
+* Secure SignalR endpoints with authorization policies.
+
+---
+
+## Chapter 8: Interview Questions
+
+1. What is SignalR?
+2. How does SignalR work with WebSockets?
+3. How do you broadcast a message to all connected clients?
+4. How do you implement private messaging in SignalR?
+5. How do you track connected users in SignalR?
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough for building a real-time chat application with SignalR in ASP.NET Core, from setup to advanced features. Mastering SignalR is essential for building scalable, real-time web applications.
+
+
+# Building a Real-time Chat Application with SignalR in ASP.NET Core
+
+## Introduction
+
+SignalR is a real-time communication library for ASP.NET Core that allows you to build real-time web applications such as chat applications, notifications, and collaborative tools.
+
+This guide will cover:
+
+1. Understanding SignalR and Real-time Communication
+2. Setting Up the SignalR Project
+3. Building the Real-time Chat Hub
+4. Creating the Chat Client (HTML + JavaScript)
+5. Configuring SignalR in ASP.NET Core
+6. Advanced Features (User Connections, Private Messaging)
+7. Best Practices for Real-time Applications
+8. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding SignalR and Real-time Communication
+
+### What is SignalR?
+
+* SignalR is a real-time communication library for ASP.NET Core that enables bi-directional communication between the server and clients.
+* It uses WebSockets for efficient communication but can fall back to other techniques (SSE, Long Polling) if WebSockets are not available.
+
+### How Does SignalR Work with WebSockets?
+
+* SignalR uses WebSockets as the primary transport protocol for real-time communication.
+* If WebSockets are not supported (client or server), it falls back to Server-Sent Events (SSE) or Long Polling.
+* WebSockets provide fast, persistent, full-duplex communication between the client and server.
+
+### Why Use SignalR?
+
+* Enables real-time updates (chat, notifications, dashboards).
+* Scales easily with Azure SignalR Service.
+* Supports various client types (Web, Mobile, Desktop).
+
+---
+
+## Chapter 2: Setting Up the SignalR Project
+
+### Create a New ASP.NET Core Project
+
+```bash
+mkdir RealTimeChatApp
+cd RealTimeChatApp
+dotnet new web -n RealTimeChatApp
+```
+
+### Install SignalR Package
+
+```bash
+dotnet add package Microsoft.AspNetCore.SignalR
+```
+
+---
+
+## Chapter 3: Building the Real-time Chat Hub
+
+### Creating the Chat Hub
+
+```csharp
+using Microsoft.AspNetCore.SignalR;
+using System.Threading.Tasks;
+
+public class ChatHub : Hub
+{
+    public async Task SendMessage(string user, string message)
+    {
+        await Clients.All.SendAsync("ReceiveMessage", user, message);
+    }
+}
+```
+
+### How Do You Broadcast a Message to All Connected Clients?
+
+* Use the `Clients.All.SendAsync` method in the Hub.
+* This sends a message to all connected clients.
+
+---
+
+## Chapter 4: Configuring SignalR in ASP.NET Core
+
+### Configure SignalR in Program.cs
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.MapHub<ChatHub>("/chatHub");
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
+app.Run();
+```
+
+### Adding SignalR Client Library
+
+* In your HTML client file, include SignalR client script:
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.5/signalr.min.js"></script>
+```
+
+---
+
+## Chapter 5: Creating the Chat Client (HTML + JavaScript)
+
+### How Do You Implement Private Messaging in SignalR?
+
+* Modify the Hub to support private messaging:
+
+```csharp
+public async Task SendPrivateMessage(string connectionId, string message)
+{
+    await Clients.Client(connectionId).SendAsync("ReceiveMessage", "Private", message);
+}
+```
+
+### How Do You Track Connected Users in SignalR?
+
+* Use `OnConnectedAsync` and `OnDisconnectedAsync` to track connected users.
+
+```csharp
+private static Dictionary<string, string> Users = new Dictionary<string, string>();
+
+public override async Task OnConnectedAsync()
+{
+    string connectionId = Context.ConnectionId;
+    Users[connectionId] = "Anonymous";
+    await base.OnConnectedAsync();
+}
+
+public override async Task OnDisconnectedAsync(Exception exception)
+{
+    Users.Remove(Context.ConnectionId);
+    await base.OnDisconnectedAsync(exception);
+}
+```
+
+---
+
+## Chapter 6: Best Practices for Real-time Applications
+
+* Use WebSockets as the primary transport for SignalR.
+* Implement user authentication for secure chat.
+* Use Azure SignalR Service for scalable applications.
+* Limit message size to prevent abuse.
+* Secure SignalR endpoints with authorization policies.
+
+---
+
+## Chapter 7: Interview Questions
+
+1. What is SignalR?
+2. How does SignalR work with WebSockets?
+3. How do you broadcast a message to all connected clients?
+4. How do you implement private messaging in SignalR?
+5. How do you track connected users in SignalR?
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough for building a real-time chat application with SignalR in ASP.NET Core, from setup to advanced features. Mastering SignalR is essential for building scalable, real-time web applications.
+
+# Building a Real-time Chat Application with SignalR in ASP.NET Core
+
+## Introduction
+
+SignalR is a real-time communication library for ASP.NET Core that allows you to build real-time web applications such as chat applications, notifications, and collaborative tools.
+
+This guide will cover:
+
+1. Understanding SignalR and Real-time Communication
+2. Setting Up the SignalR Project
+3. Building the Real-time Chat Hub
+4. Creating the Chat Client (HTML + JavaScript)
+5. Configuring SignalR in ASP.NET Core
+6. Securing SignalR with JWT Authentication
+7. Advanced Features (User Connections, Private Messaging)
+8. Best Practices for Real-time Applications
+9. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding SignalR and Real-time Communication
+
+### What is SignalR?
+
+* SignalR is a real-time communication library for ASP.NET Core that enables bi-directional communication between the server and clients.
+* It uses WebSockets for efficient communication but can fall back to other techniques (SSE, Long Polling) if WebSockets are not available.
+
+### How Does SignalR Work with WebSockets?
+
+* SignalR uses WebSockets as the primary transport protocol for real-time communication.
+* If WebSockets are not supported (client or server), it falls back to Server-Sent Events (SSE) or Long Polling.
+* WebSockets provide fast, persistent, full-duplex communication between the client and server.
+
+---
+
+## Chapter 2: Setting Up the SignalR Project
+
+### Create a New ASP.NET Core Project
+
+```bash
+mkdir RealTimeChatApp
+cd RealTimeChatApp
+dotnet new web -n RealTimeChatApp
+```
+
+### Install SignalR Package
+
+```bash
+dotnet add package Microsoft.AspNetCore.SignalR
+```
+
+### Install JWT Authentication Package
+
+```bash
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+```
+
+---
+
+## Chapter 3: Securing SignalR with JWT Authentication
+
+### Why Secure SignalR?
+
+* Ensures that only authenticated users can access the chat.
+* Prevents unauthorized access to real-time communication.
+
+### Configuring JWT Authentication in Program.cs
+
+```csharp
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = "YourIssuer",
+        ValidAudience = "YourAudience",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("YourSecretKey"))
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+            {
+                context.Token = accessToken;
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
+
+builder.Services.AddAuthorization();
+```
+
+### Protecting the SignalR Hub
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+[Authorize]
+public class ChatHub : Hub
+{
+    public async Task SendMessage(string user, string message)
+    {
+        await Clients.All.SendAsync("ReceiveMessage", user, message);
+    }
+}
+```
+
+### How This Works:
+
+* JWT token is passed in the query string for WebSocket connections.
+* SignalR hub is protected with `[Authorize]` attribute.
+* Only authenticated users with valid JWT can access the chat.
+
+---
+
+## Chapter 4: Configuring SignalR in ASP.NET Core
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapHub<ChatHub>("/chatHub");
+
+app.Run();
+```
+
+---
+
+## Chapter 5: Creating the Chat Client (HTML + JavaScript)
+
+### How to Connect with JWT Authentication
+
+```html
+<script>
+const token = "YOUR_JWT_TOKEN";
+const connection = new signalR.HubConnectionBuilder()
+    .withUrl("/chatHub?access_token=" + token)
+    .build();
+
+connection.start().catch(err => console.error(err.toString()));
+</script>
+```
+
+---
+
+## Chapter 6: Advanced Features (User Connections, Private Messaging)
+
+* Implement private messaging and user tracking with JWT authentication.
+* Use ClaimsPrincipal in the hub to identify users.
+
+### Example
+
+```csharp
+[Authorize]
+public class ChatHub : Hub
+{
+    public async Task SendMessage(string message)
+    {
+        var username = Context.User?.Identity?.Name ?? "Anonymous";
+        await Clients.All.SendAsync("ReceiveMessage", username, message);
+    }
+}
+```
+
+---
+
+## Chapter 7: Best Practices for Real-time Applications
+
+* Always use HTTPS for secure connections.
+* Validate JWT tokens with short expiration times.
+* Use Role-based Authorization in the SignalR hub.
+* Limit message size to prevent abuse.
+
+---
+
+## Chapter 8: Interview Questions
+
+1. What is SignalR?
+2. How does SignalR work with WebSockets?
+3. How do you secure SignalR with JWT Authentication?
+4. How do you broadcast a message to all connected clients?
+5. How do you implement private messaging in SignalR?
+6. How do you track connected users in SignalR?
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough for building a secure, real-time chat application with SignalR and JWT Authentication in ASP.NET Core. Mastering SignalR with JWT is essential for building scalable, secure real-time web applications.
