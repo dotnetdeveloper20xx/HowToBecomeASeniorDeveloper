@@ -1527,3 +1527,1661 @@ cts.Cancel();
 
 This guide provides a complete understanding of Async Programming and Multithreading in C#, including Threads, Tasks, Async/Await, and Parallel Programming. Mastering these concepts is essential for building scalable, responsive applications.
 
+# Thread Safety, Locks, Monitor, and Semaphore in C# - Complete Guide
+
+## Introduction
+
+Thread safety is a critical concept in multi-threaded applications. It ensures that shared data is accessed in a consistent manner, preventing data corruption and unexpected behavior. This guide covers:
+
+1. **Thread Safety and Why It Matters**
+2. **Locks in C# (lock keyword)**
+3. **Monitor Class for Advanced Locking**
+4. **Semaphore and SemaphoreSlim**
+5. **Best Practices for Thread Safety**
+6. **Common Pitfalls and Interview Questions**
+
+---
+
+## Chapter 1: Understanding Thread Safety
+
+### What is Thread Safety?
+
+Thread safety is a concept in which shared data can be accessed by multiple threads without causing data corruption.
+
+### Why is Thread Safety Important?
+
+* Prevents data corruption in multi-threaded environments.
+* Ensures consistent data access.
+* Prevents race conditions (when multiple threads access shared data simultaneously).
+
+### Example of a Thread Safety Problem
+
+```csharp
+using System;
+using System.Threading;
+
+class Counter
+{
+    private int count = 0;
+
+    public void Increment()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            count++;
+        }
+    }
+
+    public int GetCount() => count;
+}
+
+class Program
+{
+    static void Main()
+    {
+        Counter counter = new Counter();
+        Thread t1 = new Thread(counter.Increment);
+        Thread t2 = new Thread(counter.Increment);
+
+        t1.Start();
+        t2.Start();
+
+        t1.Join();
+        t2.Join();
+
+        Console.WriteLine($"Final Count: {counter.GetCount()}"); // Result is inconsistent
+    }
+}
+```
+
+### Why This is Problematic:
+
+* Multiple threads access and modify `count` without synchronization.
+* Results in data corruption due to race conditions.
+
+---
+
+## Chapter 2: Using Locks (lock keyword)
+
+### What is a Lock?
+
+A lock is a thread synchronization mechanism that ensures only one thread can access a critical section of code at a time.
+
+### How Locks Work:
+
+* Only one thread can enter the locked section at a time.
+* Other threads wait until the lock is released.
+
+### Code Example
+
+```csharp
+using System;
+using System.Threading;
+
+class Counter
+{
+    private int count = 0;
+    private readonly object _lock = new object();
+
+    public void Increment()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            lock (_lock)
+            {
+                count++;
+            }
+        }
+    }
+
+    public int GetCount() => count;
+}
+```
+
+### Best Practices for Locks
+
+* Use a private object as the lock object (not `this`).
+* Keep the locked section as short as possible.
+* Avoid deadlocks (two locks waiting on each other).
+
+---
+
+## Chapter 3: Monitor Class
+
+### What is Monitor?
+
+The `Monitor` class provides advanced locking capabilities similar to the lock keyword but with additional control.
+
+### Code Example
+
+```csharp
+using System;
+using System.Threading;
+
+class Counter
+{
+    private int count = 0;
+    private readonly object _lock = new object();
+
+    public void Increment()
+    {
+        for (int i = 0; i < 1000; i++)
+        {
+            Monitor.Enter(_lock);
+            try
+            {
+                count++;
+            }
+            finally
+            {
+                Monitor.Exit(_lock);
+            }
+        }
+    }
+
+    public int GetCount() => count;
+}
+```
+
+### Why Use Monitor?
+
+* Provides more control with `Monitor.TryEnter()` (non-blocking).
+* Allows timeout-based locking.
+
+---
+
+## Chapter 4: Semaphore and SemaphoreSlim
+
+### What is Semaphore?
+
+A Semaphore is a thread synchronization mechanism that limits the number of threads that can access a resource simultaneously.
+
+### Code Example (Semaphore)
+
+```csharp
+using System;
+using System.Threading;
+
+class Program
+{
+    static Semaphore semaphore = new Semaphore(2, 2); // Max 2 threads
+
+    static void Main()
+    {
+        for (int i = 0; i < 5; i++)
+        {
+            Thread thread = new Thread(AccessResource);
+            thread.Start(i);
+        }
+    }
+
+    static void AccessResource(object id)
+    {
+        Console.WriteLine($"Thread {id} waiting...");
+        semaphore.WaitOne();
+        Console.WriteLine($"Thread {id} entered.");
+        Thread.Sleep(2000);
+        Console.WriteLine($"Thread {id} leaving.");
+        semaphore.Release();
+    }
+}
+```
+
+### What is SemaphoreSlim?
+
+* A lightweight, faster version of Semaphore for local thread synchronization.
+* Uses a non-blocking approach for high performance.
+
+### When to Use SemaphoreSlim?
+
+* When you only need to synchronize local threads (not across processes).
+
+---
+
+## Chapter 5: Best Practices for Thread Safety
+
+* Use `lock` for simple scenarios.
+* Use `Monitor` for advanced locking control.
+* Use `SemaphoreSlim` for lightweight, multi-threaded synchronization.
+* Minimize the code inside locked sections.
+* Avoid locking on public objects (risk of deadlock).
+
+---
+
+## Chapter 6: Common Pitfalls
+
+* Using `lock(this)` - Can cause deadlock if other code locks the same object.
+* Holding a lock for too long - Reduces performance.
+* Not handling exceptions in locked sections - Causes deadlocks.
+
+---
+
+## Chapter 7: Interview Questions and Answers
+
+1. **What is thread safety, and why is it important?**
+
+   * Thread safety ensures that shared data is accessed in a consistent manner, preventing data corruption in multi-threaded environments.
+
+2. **What is the difference between lock and Monitor?**
+
+   * `lock` is a simplified wrapper around `Monitor.Enter()` and `Monitor.Exit()`, while `Monitor` provides more control (e.g., TryEnter).
+
+3. **When would you use Semaphore over lock?**
+
+   * Use Semaphore when you need to limit access to a resource by multiple threads (e.g., max 3 threads).
+
+4. **What is the difference between Semaphore and SemaphoreSlim?**
+
+   * Semaphore is for cross-process synchronization, while SemaphoreSlim is optimized for intra-process synchronization.
+
+5. **How do you prevent deadlocks?**
+
+   * Use a consistent lock order, avoid nested locks, and use `Monitor.TryEnter()` with a timeout.
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of thread safety, locks, Monitor, and Semaphore in C#. Mastering these concepts is essential for building robust, multi-threaded applications.
+
+# Async/Await in ASP.NET Core - Complete Guide
+
+## Introduction
+
+Async/Await is a powerful asynchronous programming model in C# that allows for non-blocking operations, improving the scalability and responsiveness of web applications. In ASP.NET Core, Async/Await is widely used in controllers, middleware, and services. This guide will cover:
+
+1. **Understanding Async/Await in ASP.NET Core**
+2. **Creating Async Controllers**
+3. **Async Database Access with Entity Framework Core**
+4. **Best Practices for Async Controllers**
+5. **Common Pitfalls and How to Avoid Them**
+6. **Interview Questions and Answers**
+
+---
+
+## Chapter 1: Understanding Async/Await in ASP.NET Core
+
+### What is Async/Await?
+
+* `async` is a keyword that marks a method as asynchronous.
+* `await` is used to pause the method until the awaited task completes.
+* Async/Await allows non-blocking execution, improving scalability.
+
+### Why Use Async/Await in ASP.NET Core?
+
+* Improves scalability by freeing up threads for other requests.
+* Reduces response times for I/O-bound operations (like database calls).
+
+---
+
+## Chapter 2: Creating Async Controllers
+
+### What is an Async Controller?
+
+* An async controller is an ASP.NET Core controller that uses async methods for non-blocking I/O operations.
+* It allows the server to handle more requests without blocking threads.
+
+### Code Example: Basic Async Controller
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    // Simulating a long-running I/O operation
+    [HttpGet("async-products")]
+    public async Task<IActionResult> GetProductsAsync()
+    {
+        await Task.Delay(2000); // Simulating delay
+        return Ok(new string[] { "Product 1", "Product 2", "Product 3" });
+    }
+}
+```
+
+### How This Works:
+
+* The `async` keyword makes the method asynchronous.
+* `await` pauses the method until the task is complete without blocking the thread.
+* The method returns a `Task<IActionResult>`, making it asynchronous.
+
+### Best Practices
+
+* Use async for all I/O-bound operations (like database calls, API requests).
+* Avoid using async for CPU-bound operations (use Task.Run instead).
+* Always use `await` with async methods.
+
+---
+
+## Chapter 3: Async Database Access with Entity Framework Core
+
+### Why Use Async with EF Core?
+
+* Async queries prevent thread blocking during database operations.
+* Improves scalability for high-traffic applications.
+
+### Code Example: Async Database Query
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+public class ApplicationDbContext : DbContext
+{
+    public DbSet<Product> Products { get; set; }
+}
+
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet("async-products-db")]
+    public async Task<IActionResult> GetProductsFromDatabaseAsync()
+    {
+        List<Product> products = await _context.Products.ToListAsync();
+        return Ok(products);
+    }
+}
+```
+
+### Best Practices
+
+* Always use `ToListAsync()`, `FirstOrDefaultAsync()`, `AnyAsync()` with EF Core.
+* Avoid using synchronous database methods (like `ToList()` or `FirstOrDefault()`).
+
+---
+
+## Chapter 4: Common Pitfalls and How to Avoid Them
+
+* **Blocking Async Methods:** Avoid using `.Result` or `.Wait()` on async methods.
+* **Deadlocks:** Use `ConfigureAwait(false)` in library code to prevent deadlocks.
+* **Overusing Async:** Do not use async for CPU-bound tasks (like image processing).
+
+### Example of a Deadlock
+
+```csharp
+// Avoid this
+public IActionResult GetData()
+{
+    var result = GetDataAsync().Result; // Causes deadlock
+    return Ok(result);
+}
+
+// Use this
+public async Task<IActionResult> GetDataAsync()
+{
+    var result = await FetchDataAsync();
+    return Ok(result);
+}
+```
+
+---
+
+## Chapter 5: Interview Questions and Answers
+
+1. **What is an Async Controller in ASP.NET Core?**
+
+   * An async controller uses async methods to handle requests without blocking threads.
+
+2. **Why should you use Async/Await in ASP.NET Core Controllers?**
+
+   * It improves scalability and responsiveness for I/O-bound operations.
+
+3. **What is the difference between Async and Sync database queries in EF Core?**
+
+   * Async queries (like `ToListAsync()`) do not block the thread, while sync queries do.
+
+4. **How do you prevent deadlocks in Async methods?**
+
+   * Avoid using `.Wait()` or `.Result()` and use `ConfigureAwait(false)` in library code.
+
+5. **When should you avoid using Async in ASP.NET Core?**
+
+   * For CPU-bound tasks (like image processing or calculations).
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of Async/Await in ASP.NET Core, including Async Controllers, Async Database Access, best practices, and common pitfalls. Mastering async/await is essential for building scalable, responsive web applications.
+
+
+# ASP.NET Core Web API - Clean Architecture with CQRS and MediatR
+
+## Introduction
+
+This guide covers building a scalable and maintainable ASP.NET Core Web API using Clean Architecture with CQRS (Command Query Responsibility Segregation) and MediatR. This approach ensures a modular structure, testability, and separation of concerns.
+
+### What is Clean Architecture?
+
+* A software architecture pattern that promotes separation of concerns.
+* Divides the application into independent layers:
+
+  * **Presentation (API)**
+  * **Application (CQRS, Business Logic)**
+  * **Domain (Entities, Interfaces)**
+  * **Infrastructure (Database, External Services)**
+
+### What is CQRS?
+
+* Command Query Responsibility Segregation (CQRS) is a pattern that separates read (queries) and write (commands) operations.
+* Queries only fetch data, while Commands perform actions.
+
+### What is MediatR?
+
+* MediatR is a lightweight library for implementing CQRS using the Mediator pattern.
+* It decouples the sender (controller) from the receiver (handlers).
+
+---
+
+## Project Structure
+
+### Folder Structure
+
+```
+📂 YourProject
+├── 📂 API (Presentation Layer)
+│   └── Controllers
+├── 📂 Application (CQRS + MediatR)
+│   └── Commands
+│   └── Queries
+│   └── Interfaces
+│   └── Behaviors
+├── 📂 Domain (Entities, Enums)
+│   └── Entities
+│   └── Enums
+├── 📂 Infrastructure (Database, External Services)
+│   └── Persistence
+│   └── Services
+└── 📂 Tests (Unit and Integration Tests)
+```
+
+---
+
+## Step 1: Setting Up the Project
+
+### Create the Solution
+
+```bash
+mkdir CleanArchitectureAPI
+cd CleanArchitectureAPI
+
+# Create the Solution and Projects
+dotnet new sln -n CleanArchitectureAPI
+
+# Create Projects
+dotnet new webapi -n API
+dotnet new classlib -n Application
+dotnet new classlib -n Domain
+dotnet new classlib -n Infrastructure
+
+# Add Projects to Solution
+dotnet sln add API/API.csproj
+dotnet sln add Application/Application.csproj
+dotnet sln add Domain/Domain.csproj
+dotnet sln add Infrastructure/Infrastructure.csproj
+```
+
+### Set Project Dependencies
+
+* API -> Application, Infrastructure
+* Application -> Domain
+* Infrastructure -> Application, Domain
+
+```bash
+cd API
+dotnet add reference ../Application/Application.csproj
+cd ../Application
+dotnet add reference ../Domain/Domain.csproj
+cd ../Infrastructure
+dotnet add reference ../Application/Application.csproj
+```
+
+---
+
+## Step 2: Installing Required Packages
+
+```bash
+# Install MediatR and Entity Framework Core
+dotnet add API package MediatR.Extensions.Microsoft.DependencyInjection
+dotnet add API package Microsoft.EntityFrameworkCore.SqlServer
+dotnet add Infrastructure package Microsoft.EntityFrameworkCore.SqlServer
+```
+
+---
+
+## Step 3: Implementing the Domain Layer
+
+### Create a Product Entity
+
+```csharp
+namespace Domain.Entities
+{
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
+}
+```
+
+---
+
+## Step 4: Implementing the Application Layer (CQRS + MediatR)
+
+### Create Product Commands (CreateProductCommand)
+
+```csharp
+using MediatR;
+
+namespace Application.Commands
+{
+    public record CreateProductCommand(string Name, decimal Price) : IRequest<int>;
+}
+```
+
+### Create Command Handler
+
+```csharp
+using Application.Commands;
+using Domain.Entities;
+using Infrastructure.Persistence;
+using MediatR;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand, int>
+{
+    private readonly ApplicationDbContext _context;
+
+    public CreateProductCommandHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<int> Handle(CreateProductCommand request, CancellationToken cancellationToken)
+    {
+        var product = new Product { Name = request.Name, Price = request.Price };
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync(cancellationToken);
+        return product.Id;
+    }
+}
+```
+
+### Create Product Query (GetAllProductsQuery)
+
+```csharp
+using MediatR;
+using Domain.Entities;
+using System.Collections.Generic;
+
+namespace Application.Queries
+{
+    public record GetAllProductsQuery() : IRequest<List<Product>>;
+}
+```
+
+### Create Query Handler
+
+```csharp
+using Application.Queries;
+using Domain.Entities;
+using Infrastructure.Persistence;
+using MediatR;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class GetAllProductsQueryHandler : IRequestHandler<GetAllProductsQuery, List<Product>>
+{
+    private readonly ApplicationDbContext _context;
+
+    public GetAllProductsQueryHandler(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<Product>> Handle(GetAllProductsQuery request, CancellationToken cancellationToken)
+    {
+        return await _context.Products.ToListAsync(cancellationToken);
+    }
+}
+```
+
+---
+
+## Step 5: Implementing the API Layer
+
+### Setting Up the Controller
+
+```csharp
+using Application.Commands;
+using Application.Queries;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IMediator _mediator;
+
+    public ProductsController(IMediator mediator)
+    {
+        _mediator = mediator;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct(CreateProductCommand command)
+    {
+        var productId = await _mediator.Send(command);
+        return Ok(productId);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetProducts()
+    {
+        var products = await _mediator.Send(new GetAllProductsQuery());
+        return Ok(products);
+    }
+}
+```
+
+---
+
+## Step 6: Configuring Dependency Injection (API/Program.cs)
+
+```csharp
+builder.Services.AddMediatR(typeof(CreateProductCommandHandler).Assembly);
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+```
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough for building a Clean Architecture Web API in ASP.NET Core using CQRS and MediatR. It is a scalable, maintainable solution suitable for real-world projects.
+
+# Modular Project Structure in ASP.NET Core - API, Application, Domain, Infrastructure
+
+## Introduction
+
+A modular project structure is a best practice for building scalable and maintainable ASP.NET Core applications. This structure divides the application into four main layers:
+
+* **API (Presentation Layer)**: Handles HTTP requests and user interactions.
+* **Application (Business Logic Layer)**: Contains business logic, CQRS, and MediatR.
+* **Domain (Core Entities and Interfaces)**: Defines the core entities, enums, and interfaces.
+* **Infrastructure (Database and External Services)**: Manages data persistence and external services.
+
+This guide will cover how to set up and structure a modular ASP.NET Core solution, with clear explanations and code examples.
+
+---
+
+## Why Use a Modular Project Structure?
+
+* **Separation of Concerns:** Each layer has a clear responsibility.
+* **Scalability:** Easy to add new features without affecting other layers.
+* **Testability:** Business logic is isolated and testable.
+* **Maintainability:** Code is organized and easy to navigate.
+
+---
+
+## Project Structure
+
+### Recommended Folder Structure
+
+```
+📂 YourProject
+├── 📂 API (Presentation Layer)
+│   └── Controllers
+│   └── Middleware
+│   └── Filters
+├── 📂 Application (Business Logic Layer)
+│   └── Commands (CQRS - Commands)
+│   └── Queries (CQRS - Queries)
+│   └── Interfaces
+│   └── Services
+│   └── Behaviors (Validation, Logging)
+├── 📂 Domain (Core Entities)
+│   └── Entities
+│   └── Enums
+│   └── Interfaces
+├── 📂 Infrastructure (Database, External Services)
+│   └── Persistence (EF Core, Repositories)
+│   └── Services (External APIs)
+│   └── Configurations
+└── 📂 Tests (Unit and Integration Tests)
+```
+
+---
+
+## Step 1: Setting Up the Solution
+
+### Create the Solution and Projects
+
+```bash
+mkdir ModularArchitecture
+cd ModularArchitecture
+
+# Create the Solution and Projects
+dotnet new sln -n ModularArchitecture
+
+dotnet new webapi -n API
+dotnet new classlib -n Application
+dotnet new classlib -n Domain
+dotnet new classlib -n Infrastructure
+
+# Add Projects to Solution
+dotnet sln add API/API.csproj
+
+dotnet sln add Application/Application.csproj
+
+dotnet sln add Domain/Domain.csproj
+
+dotnet sln add Infrastructure/Infrastructure.csproj
+```
+
+### Set Project Dependencies
+
+* API -> Application, Infrastructure
+* Application -> Domain
+* Infrastructure -> Application, Domain
+
+```bash
+cd API
+dotnet add reference ../Application/Application.csproj
+cd ../Application
+dotnet add reference ../Domain/Domain.csproj
+cd ../Infrastructure
+dotnet add reference ../Application/Application.csproj
+```
+
+---
+
+## Step 2: Setting Up the API Project
+
+### Controllers
+
+* All HTTP endpoints are managed in the API project.
+* Use dependency injection to access services.
+
+### Example Controller
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Application.Interfaces;
+
+[ApiController]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    private readonly IProductService _productService;
+
+    public ProductsController(IProductService productService)
+    {
+        _productService = productService;
+    }
+
+    [HttpGet]
+    public IActionResult GetProducts()
+    {
+        var products = _productService.GetAllProducts();
+        return Ok(products);
+    }
+}
+```
+
+---
+
+## Step 3: Setting Up the Application Project
+
+### Commands and Queries (CQRS)
+
+* The Application layer contains all business logic (CQRS, MediatR).
+
+### Example Command
+
+```csharp
+namespace Application.Commands
+{
+    public record CreateProductCommand(string Name, decimal Price);
+}
+```
+
+### Example Query
+
+```csharp
+namespace Application.Queries
+{
+    public record GetAllProductsQuery();
+}
+```
+
+### Services and Interfaces
+
+* Interfaces define service contracts.
+* Services implement business logic.
+
+```csharp
+namespace Application.Interfaces
+{
+    public interface IProductService
+    {
+        List<string> GetAllProducts();
+    }
+}
+
+public class ProductService : IProductService
+{
+    public List<string> GetAllProducts() => new List<string> { "Product 1", "Product 2" };
+}
+```
+
+---
+
+## Step 4: Setting Up the Domain Project
+
+### Entities
+
+* The Domain layer defines the core business entities.
+
+```csharp
+namespace Domain.Entities
+{
+    public class Product
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public decimal Price { get; set; }
+    }
+}
+```
+
+### Interfaces
+
+* Domain interfaces define core rules for the application.
+
+```csharp
+namespace Domain.Interfaces
+{
+    public interface IRepository<T>
+    {
+        T GetById(int id);
+        List<T> GetAll();
+    }
+}
+```
+
+---
+
+## Step 5: Setting Up the Infrastructure Project
+
+### Persistence (EF Core)
+
+* Manages data persistence (EF Core, Repositories).
+
+```csharp
+using Domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+public class ApplicationDbContext : DbContext
+{
+    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
+
+    public DbSet<Product> Products { get; set; }
+}
+```
+
+### Repository Implementation
+
+```csharp
+using Domain.Entities;
+using Domain.Interfaces;
+
+public class ProductRepository : IRepository<Product>
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public List<Product> GetAll() => _context.Products.ToList();
+}
+```
+
+---
+
+## Step 6: Configuring Dependency Injection (API/Program.cs)
+
+```csharp
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IRepository<Product>, ProductRepository>();
+```
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough of setting up a modular ASP.NET Core solution with API, Application, Domain, and Infrastructure layers. It ensures clean architecture, separation of concerns, and maintainability.
+
+# Securing ASP.NET Core API with JWT Authentication and Role-Based Authorization
+
+## Introduction
+
+This guide covers how to secure an ASP.NET Core Web API using JWT (JSON Web Token) Authentication and Role-Based Authorization. This approach ensures that only authenticated users with specific roles can access certain endpoints.
+
+---
+
+## What is JWT Authentication?
+
+* JSON Web Token (JWT) is an open standard for securely transmitting information between parties as a JSON object.
+* JWT consists of three parts: Header, Payload, and Signature.
+* In ASP.NET Core, JWT is used for secure API authentication.
+
+### Why Use JWT?
+
+* Stateless Authentication: The server does not store user sessions.
+* Scalable: Works well with microservices.
+* Secure: Supports claims-based authentication.
+
+---
+
+## Project Setup
+
+### Step 1: Create a New API Project
+
+```bash
+dotnet new webapi -n SecureAPI
+cd SecureAPI
+```
+
+### Step 2: Install JWT Authentication Packages
+
+```bash
+dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer
+```
+
+---
+
+## Step 3: Configure JWT Authentication
+
+### Configure JWT in Program.cs
+
+```csharp
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false;
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
+    };
+});
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Admin"));
+});
+
+builder.Services.AddControllers();
+
+var app = builder.Build();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+app.Run();
+```
+
+### Step 4: Add JWT Configuration in appsettings.json
+
+```json
+{
+  "Jwt": {
+    "Issuer": "YourIssuer",
+    "Audience": "YourAudience",
+    "SecretKey": "YourSecretKey12345"
+  }
+}
+```
+
+---
+
+## Step 5: Creating a Token Generation Endpoint
+
+### Add Authentication Controller
+
+```csharp
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+
+[ApiController]
+[Route("api/[controller]")]
+public class AuthController : ControllerBase
+{
+    private readonly IConfiguration _configuration;
+
+    public AuthController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
+    [HttpPost("login")]
+    public IActionResult Login(string username, string password)
+    {
+        if (username == "admin" && password == "password")
+        {
+            var token = GenerateJwtToken(username);
+            return Ok(new { token });
+        }
+
+        return Unauthorized();
+    }
+
+    private string GenerateJwtToken(string username)
+    {
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.Role, "Admin")
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SecretKey"]));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.Now.AddMinutes(30),
+            signingCredentials: creds
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+}
+```
+
+### How It Works:
+
+* Users provide a username and password.
+* If valid, a JWT token is generated with username and role claims.
+* The token is returned to the user for authentication.
+
+---
+
+## Step 6: Securing API Endpoints
+
+### Create a Secure API Controller
+
+```csharp
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class SecureDataController : ControllerBase
+{
+    [HttpGet("public")]
+    public IActionResult PublicData() => Ok("This is public data.");
+
+    [Authorize]
+    [HttpGet("protected")]
+    public IActionResult ProtectedData() => Ok("This is protected data.");
+
+    [Authorize(Roles = "Admin")]
+    [HttpGet("admin")]
+    public IActionResult AdminData() => Ok("This is admin data.");
+}
+```
+
+### How It Works:
+
+* Public endpoint: No authentication required.
+* Protected endpoint: Requires authentication.
+* Admin endpoint: Requires authentication and Admin role.
+
+---
+
+## Step 7: Testing JWT Authentication
+
+* Use Postman or any HTTP client to test:
+
+  * Login: POST /api/auth/login (Receive JWT token)
+  * Public Data: GET /api/securedata/public (No JWT required)
+  * Protected Data: GET /api/securedata/protected (JWT required)
+  * Admin Data: GET /api/securedata/admin (JWT with Admin role required)
+
+---
+
+## Step 8: Best Practices
+
+* Use HTTPS for secure communication.
+* Store JWT Secret in Azure Key Vault (or environment variables).
+* Use short token expiration times and refresh tokens.
+* Validate JWT claims in your controllers.
+
+---
+
+## Conclusion
+
+This guide provides a complete walkthrough for securing an ASP.NET Core Web API with JWT Authentication and Role-Based Authorization. Mastering JWT is essential for building secure, scalable APIs.
+
+# Middleware and Error Handling in ASP.NET Core - Complete Guide
+
+## Introduction
+
+Middleware is a key component of the ASP.NET Core request pipeline. It allows you to process HTTP requests and responses, making it essential for implementing cross-cutting concerns such as logging, authentication, and error handling.
+
+This guide covers:
+
+1. Understanding Middleware in ASP.NET Core
+2. Building Custom Middleware
+3. Implementing Request and Response Logging Middleware
+4. Implementing Centralized Error Handling Middleware
+5. Best Practices for Middleware and Error Handling
+6. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding Middleware
+
+### What is Middleware?
+
+* Middleware is a component that processes HTTP requests and responses in the ASP.NET Core request pipeline.
+* It is executed in sequence, and each middleware can decide whether to pass the request to the next component.
+
+### How Middleware Works:
+
+* Middleware is added in the `Program.cs` (or Startup.cs) file.
+* Each middleware can perform actions before and after the request is processed.
+
+### Example Middleware Pipeline
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+// Adding Middleware
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Request received");
+    await next();
+    Console.WriteLine("Response sent");
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Hello, World!");
+});
+
+app.Run();
+```
+
+### Output:
+
+```
+Request received
+Response sent
+```
+
+---
+
+## Chapter 2: Building Custom Middleware
+
+### What is Custom Middleware?
+
+* Custom Middleware is a reusable component that you create to process requests and responses in the pipeline.
+
+### How to Create Custom Middleware
+
+```csharp
+using System.Threading.Tasks;
+
+public class RequestLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public RequestLoggingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+        await _next(context);
+        Console.WriteLine($"Response: {context.Response.StatusCode}");
+    }
+}
+
+// Extension Method for Middleware
+public static class RequestLoggingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<RequestLoggingMiddleware>();
+    }
+}
+```
+
+### Adding Custom Middleware in Program.cs
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+app.UseRequestLogging();
+
+app.MapGet("/", () => "Hello, World!");
+app.Run();
+```
+
+### Output:
+
+```
+Request: GET /
+Response: 200
+```
+
+---
+
+## Chapter 3: Implementing Request and Response Logging Middleware
+
+### Why Log Requests and Responses?
+
+* Provides visibility into incoming requests and outgoing responses.
+* Helps with debugging and monitoring.
+
+### Advanced Logging Middleware
+
+```csharp
+public class AdvancedLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public AdvancedLoggingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        // Logging Request
+        Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+
+        // Clone Response Body
+        var originalBodyStream = context.Response.Body;
+        using var memoryStream = new MemoryStream();
+        context.Response.Body = memoryStream;
+
+        await _next(context);
+
+        // Logging Response
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        string responseBody = new StreamReader(memoryStream).ReadToEnd();
+        Console.WriteLine($"Response: {responseBody}");
+
+        // Write back to original response body
+        memoryStream.Seek(0, SeekOrigin.Begin);
+        await memoryStream.CopyToAsync(originalBodyStream);
+    }
+}
+
+// Extension Method
+public static class AdvancedLoggingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseAdvancedLogging(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<AdvancedLoggingMiddleware>();
+    }
+}
+```
+
+---
+
+## Chapter 4: Centralized Error Handling Middleware
+
+### Why Use Centralized Error Handling?
+
+* Ensures consistent error responses for all API endpoints.
+* Prevents unhandled exceptions from crashing the application.
+
+### Error Handling Middleware
+
+```csharp
+public class ErrorHandlingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public ErrorHandlingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = 500;
+
+        var errorResponse = new { message = "An error occurred.", detail = exception.Message };
+        return context.Response.WriteAsJsonAsync(errorResponse);
+    }
+}
+
+// Extension Method
+public static class ErrorHandlingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ErrorHandlingMiddleware>();
+    }
+}
+```
+
+### Adding Error Handling Middleware in Program.cs
+
+```csharp
+app.UseErrorHandling();
+```
+
+---
+
+## Chapter 5: Best Practices for Middleware and Error Handling
+
+* Keep middleware logic simple and focused.
+* Use centralized error handling for consistent responses.
+* Log errors with detailed context (request URL, headers).
+* Avoid logging sensitive information (like passwords).
+* Order middleware correctly (Error Handling should be first).
+
+---
+
+## Chapter 6: Common Pitfalls
+
+* Forgetting to call `await next()` in middleware (causes request pipeline to break).
+* Logging sensitive information (like passwords) in request/response logs.
+* Using `try/catch` directly in controllers instead of centralized middleware.
+
+---
+
+## Chapter 7: Interview Questions
+
+1. What is Middleware in ASP.NET Core?
+2. How do you create Custom Middleware?
+3. How do you implement centralized error handling in ASP.NET Core?
+4. What is the difference between `Use`, `Run`, and `Map` in Middleware?
+5. Why should you use Error Handling Middleware?
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of Middleware and Error Handling in ASP.NET Core, including custom middleware, request/response logging, and centralized error handling. Mastering middleware is essential for building robust, maintainable APIs.
+
+# Middleware and Error Handling in ASP.NET Core - Complete Guide
+
+## Introduction
+
+Middleware is a key component of the ASP.NET Core request pipeline. It allows you to process HTTP requests and responses, making it essential for implementing cross-cutting concerns such as logging, authentication, and error handling.
+
+This guide covers:
+
+1. Understanding Middleware in ASP.NET Core
+2. Building Custom Middleware
+3. Implementing Request and Response Logging Middleware
+4. Implementing Centralized Error Handling Middleware
+5. Best Practices for Middleware and Error Handling
+6. Common Pitfalls and Interview Questions
+
+---
+
+## Chapter 1: Understanding Middleware
+
+### What is Middleware?
+
+* Middleware is a component that processes HTTP requests and responses in the ASP.NET Core request pipeline.
+* It is executed in sequence, and each middleware can decide whether to pass the request to the next component.
+
+### How Middleware Works:
+
+* Middleware is added in the `Program.cs` (or Startup.cs) file.
+* Each middleware can perform actions before and after the request is processed.
+
+### Example Middleware Pipeline
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+var app = builder.Build();
+
+// Adding Middleware
+app.Use(async (context, next) =>
+{
+    Console.WriteLine("Request received");
+    await next();
+    Console.WriteLine("Response sent");
+});
+
+app.Run(async context =>
+{
+    await context.Response.WriteAsync("Hello, World!");
+});
+
+app.Run();
+```
+
+### Output:
+
+```
+Request received
+Response sent
+```
+
+### Why Use Middleware?
+
+* Adds flexibility to process requests and responses.
+* Allows cross-cutting concerns (logging, authentication, error handling).
+
+---
+
+## Chapter 2: Building Custom Middleware
+
+### What is Custom Middleware?
+
+* Custom Middleware is a reusable component that you create to process requests and responses in the pipeline.
+
+### How to Create Custom Middleware
+
+```csharp
+using System.Threading.Tasks;
+
+public class RequestLoggingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public RequestLoggingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        Console.WriteLine($"Request: {context.Request.Method} {context.Request.Path}");
+        await _next(context);
+        Console.WriteLine($"Response: {context.Response.StatusCode}");
+    }
+}
+
+// Extension Method for Middleware
+public static class RequestLoggingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseRequestLogging(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<RequestLoggingMiddleware>();
+    }
+}
+```
+
+---
+
+## Chapter 3: Centralized Error Handling Middleware
+
+### Why Use Centralized Error Handling?
+
+* Ensures consistent error responses for all API endpoints.
+* Prevents unhandled exceptions from crashing the application.
+
+### Error Handling Middleware
+
+```csharp
+public class ErrorHandlingMiddleware
+{
+    private readonly RequestDelegate _next;
+
+    public ErrorHandlingMiddleware(RequestDelegate next)
+    {
+        _next = next;
+    }
+
+    public async Task InvokeAsync(HttpContext context)
+    {
+        try
+        {
+            await _next(context);
+        }
+        catch (Exception ex)
+        {
+            await HandleExceptionAsync(context, ex);
+        }
+    }
+
+    private Task HandleExceptionAsync(HttpContext context, Exception exception)
+    {
+        context.Response.ContentType = "application/json";
+        context.Response.StatusCode = 500;
+
+        var errorResponse = new { message = "An error occurred.", detail = exception.Message };
+        return context.Response.WriteAsJsonAsync(errorResponse);
+    }
+}
+
+// Extension Method
+public static class ErrorHandlingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseErrorHandling(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ErrorHandlingMiddleware>();
+    }
+}
+```
+
+---
+
+## Chapter 4: Difference between Use, Run, and Map
+
+* `Use`: Adds middleware that can pass requests to the next middleware.
+* `Run`: Adds a terminal middleware that stops the pipeline.
+* `Map`: Creates branching logic in the middleware pipeline.
+
+### Example:
+
+```csharp
+app.Use(async (context, next) => { Console.WriteLine("Use"); await next(); });
+app.Run(async context => { Console.WriteLine("Run"); });
+```
+
+---
+
+## Chapter 5: Why Use Error Handling Middleware?
+
+* Provides consistent error responses for all endpoints.
+* Prevents unhandled exceptions from crashing the app.
+* Centralizes error handling logic in one place.
+
+---
+
+## Chapter 6: Interview Questions
+
+1. **What is Middleware in ASP.NET Core?**
+
+   * Middleware is a component that processes HTTP requests and responses in the request pipeline.
+
+2. **How do you create Custom Middleware?**
+
+   * Create a class with a `RequestDelegate` and an `InvokeAsync` method.
+   * Register it using `app.UseMiddleware<YourMiddleware>()`.
+
+3. **How do you implement centralized error handling in ASP.NET Core?**
+
+   * Create custom error handling middleware that catches exceptions and returns a consistent error response.
+
+4. **What is the difference between Use, Run, and Map in Middleware?**
+
+   * `Use` passes control to the next middleware.
+   * `Run` is terminal and does not call the next middleware.
+   * `Map` creates branches in the pipeline.
+
+5. **Why should you use Error Handling Middleware?**
+
+   * It centralizes error handling and provides consistent responses for all API endpoints.
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of Middleware and Error Handling in ASP.NET Core, including custom middleware, request/response logging, and centralized error handling. Mastering middleware is essential for building robust, maintainable APIs.
