@@ -827,11 +827,168 @@ public class ResourceManager : IDisposable
 * Always implement `Dispose` when using unmanaged resources.
 * Avoid finalizers unless necessary.
 
-### Interview Questions
+# IDisposable and Dispose Pattern in C# - Complete Guide
 
-1. What is IDisposable?
-2. What is the Dispose Pattern?
-3. What is the difference between Dispose() and Finalize()?
+## 1. What is IDisposable?
+
+### Answer:
+
+IDisposable is an interface in C# that provides a standardized way to release unmanaged resources (like file handles, database connections, network streams) held by a class.
+
+### Key Concepts:
+
+* IDisposable is part of the System namespace.
+* It defines a single method: `Dispose()`.
+* It is commonly used for classes that manage unmanaged resources.
+
+### Code Example:
+
+```csharp
+using System;
+using System.IO;
+
+public class FileManager : IDisposable
+{
+    private FileStream _fileStream;
+
+    public FileManager(string filePath)
+    {
+        _fileStream = new FileStream(filePath, FileMode.Open);
+    }
+
+    public void ReadFile()
+    {
+        Console.WriteLine("Reading file...");
+    }
+
+    // Implementing Dispose
+    public void Dispose()
+    {
+        _fileStream?.Dispose();
+        Console.WriteLine("File stream disposed.");
+    }
+}
+
+// Usage
+using (var fileManager = new FileManager("example.txt"))
+{
+    fileManager.ReadFile();
+}
+```
+
+### Why Use IDisposable?
+
+* To ensure that unmanaged resources are released promptly.
+* To prevent memory leaks and resource exhaustion.
+
+---
+
+## 2. What is the Dispose Pattern?
+
+### Answer:
+
+The Dispose Pattern is a best practice for properly releasing both managed and unmanaged resources in a class that implements `IDisposable`.
+
+### Key Concepts:
+
+* Ensures deterministic resource cleanup (manual release of resources).
+* Prevents resource leaks even if `Dispose()` is not called directly.
+* Often used with a finalizer (`~ClassName`) for additional safety.
+
+### Code Example (Full Dispose Pattern):
+
+```csharp
+public class ResourceManager : IDisposable
+{
+    private bool _disposed = false;
+
+    ~ResourceManager() // Finalizer
+    {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this); // Prevents finalizer call
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Release managed resources
+            }
+
+            // Release unmanaged resources
+            _disposed = true;
+        }
+    }
+}
+```
+
+### Why Use the Dispose Pattern?
+
+* Provides a consistent way to release resources.
+* Prevents resource leaks even if `Dispose()` is not called explicitly.
+* GC.SuppressFinalize() improves performance by skipping the finalizer.
+
+---
+
+## 3. What is the difference between Dispose() and Finalize()?
+
+### Answer:
+
+| Aspect         | Dispose()                    | Finalize()                            |
+| -------------- | ---------------------------- | ------------------------------------- |
+| Usage          | Explicit (manual) cleanup    | Automatic (by GC)                     |
+| Implementation | IDisposable interface        | Finalizer (\~ClassName)               |
+| Performance    | Fast (Immediate)             | Slow (Delayed by GC)                  |
+| Control        | Full control (deterministic) | No direct control (non-deterministic) |
+
+### Key Differences:
+
+* Dispose() is called manually by the developer, usually through a `using` statement.
+* Finalize() is called automatically by the Garbage Collector (GC) for cleanup.
+* Dispose() should be used for both managed and unmanaged resources.
+* Finalize() should only be used for unmanaged resources as a safety net.
+
+### Code Example
+
+```csharp
+public class Example : IDisposable
+{
+    ~Example() // Finalizer
+    {
+        Console.WriteLine("Finalizer Called.");
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("Dispose Called.");
+        GC.SuppressFinalize(this); // Prevents Finalizer
+    }
+}
+
+// Usage
+var obj = new Example();
+obj.Dispose(); // Calls Dispose
+```
+
+### Best Practices
+
+* Always use `using` for IDisposable objects.
+* Avoid using Finalizers unless absolutely necessary.
+* Use Dispose Pattern for complex classes with both managed and unmanaged resources.
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of IDisposable, the Dispose Pattern, and the differences between Dispose() and Finalize() in C#. Mastering these concepts is essential for building efficient, memory-safe .NET applications.
+
 
 ---
 
@@ -899,20 +1056,204 @@ Console.WriteLine(person1.Name); // Doe
 
 ---
 
-## Chapter 5: Interview Questions
+## 1. What is Garbage Collection in C#?
 
-1. What is Garbage Collection in C#?
-2. What is the difference between Dispose() and Finalize()?
-3. What are Value Types and Reference Types?
-4. What is the Dispose Pattern?
-5. When should you use IDisposable?
-6. How can you optimize memory management in C#?
+### Answer:
+
+Garbage Collection (GC) in C# is an automatic memory management feature of the .NET runtime that reclaims unused memory by identifying and removing objects that are no longer accessible.
+
+### Key Concepts:
+
+* **Automatic Memory Management:** GC automatically frees memory without developer intervention.
+* **Generational Collection:** Objects are categorized into three generations (Gen 0, Gen 1, Gen 2) based on their lifespan.
+* **Mark-and-Sweep Algorithm:** GC uses a mark-and-sweep process to identify and clear unused objects.
+
+### Example:
+
+```csharp
+class Program
+{
+    static void Main()
+    {
+        for (int i = 0; i < 10000; i++)
+        {
+            var data = new byte[1024]; // Memory allocation
+        }
+        GC.Collect(); // Manually triggers GC (not recommended in production)
+        Console.WriteLine("Garbage Collection Complete.");
+    }
+}
+```
+
+---
+
+## 2. What is the difference between Dispose() and Finalize()?
+
+### Answer:
+
+* **Dispose():** Explicit method for releasing unmanaged resources, implemented through `IDisposable`.
+* **Finalize():** Automatic method for releasing unmanaged resources, called by GC as a safety net.
+
+### Key Differences:
+
+| Aspect         | Dispose()                    | Finalize()                            |
+| -------------- | ---------------------------- | ------------------------------------- |
+| Usage          | Explicit (manual) cleanup    | Automatic (by GC)                     |
+| Implementation | IDisposable interface        | Finalizer (\~ClassName)               |
+| Performance    | Fast (Immediate)             | Slow (Delayed by GC)                  |
+| Control        | Full control (deterministic) | No direct control (non-deterministic) |
+
+### Code Example:
+
+```csharp
+public class ResourceManager : IDisposable
+{
+    ~ResourceManager() // Finalizer
+    {
+        Console.WriteLine("Finalizer Called.");
+    }
+
+    public void Dispose()
+    {
+        Console.WriteLine("Dispose Called.");
+        GC.SuppressFinalize(this);
+    }
+}
+```
+
+---
+
+## 3. What are Value Types and Reference Types?
+
+### Answer:
+
+* **Value Types:** Stored in stack memory, directly contain data.
+
+  * Examples: int, double, bool, struct.
+* **Reference Types:** Stored in heap memory, contain a reference (pointer) to the actual data.
+
+  * Examples: string, array, class, object.
+
+### Key Differences:
+
+| Aspect           | Value Types                   | Reference Types                        |
+| ---------------- | ----------------------------- | -------------------------------------- |
+| Storage Location | Stack                         | Heap                                   |
+| Copying          | Creates a new copy            | Copies reference (points to same data) |
+| Null Assignment  | Not allowed (except nullable) | Allowed                                |
+
+### Code Example:
+
+```csharp
+int a = 10;
+int b = a; // Value Copy
+b = 20;
+Console.WriteLine(a); // Output: 10
+
+class Person { public string Name; }
+Person p1 = new Person { Name = "John" };
+Person p2 = p1; // Reference Copy
+p2.Name = "Doe";
+Console.WriteLine(p1.Name); // Output: Doe
+```
+
+---
+
+## 4. What is the Dispose Pattern?
+
+### Answer:
+
+The Dispose Pattern is a best practice for properly releasing unmanaged resources in a C# class using `IDisposable`.
+
+### Code Example (Full Dispose Pattern):
+
+```csharp
+public class ResourceManager : IDisposable
+{
+    private bool _disposed = false;
+
+    ~ResourceManager() // Finalizer
+    {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Release managed resources
+            }
+            // Release unmanaged resources
+            _disposed = true;
+        }
+    }
+}
+```
+
+### Key Concepts:
+
+* Prevents resource leaks.
+* Provides a consistent approach for resource cleanup.
+* GC.SuppressFinalize() prevents unnecessary finalizer calls.
+
+---
+
+## 5. When should you use IDisposable?
+
+### Answer:
+
+* Use IDisposable when your class holds unmanaged resources (e.g., file handles, database connections, streams).
+* Use IDisposable to ensure that resources are released promptly using `Dispose()`.
+
+### Example:
+
+```csharp
+using (FileStream file = new FileStream("example.txt", FileMode.Open))
+{
+    // Use the file
+}
+// FileStream is disposed automatically at the end of the using block
+```
+
+---
+
+## 6. How can you optimize memory management in C#?
+
+### Answer:
+
+* Minimize object allocations.
+* Use the `using` statement for IDisposable objects.
+* Use StringBuilder for string manipulations.
+* Prefer value types for small data.
+* Avoid memory leaks by properly implementing `IDisposable`.
+* Use object pooling for frequently used objects.
+* Use WeakReference for large objects that should be collected when not needed.
+
+### Example:
+
+```csharp
+StringBuilder sb = new StringBuilder(); // Better for multiple string concatenations
+for (int i = 0; i < 1000; i++)
+{
+    sb.Append($"Line {i}\n");
+}
+Console.WriteLine(sb.ToString());
+```
 
 ---
 
 ## Conclusion
 
-This guide provides a complete understanding of Memory Management in C#, including Garbage Collection, IDisposable, and the differences between Value Types and Reference Types. Mastering these concepts is essential for building high-performance .NET applications.
+This guide provides complete answers to the most common interview questions on memory management in C#, including Garbage Collection, IDisposable, Dispose Pattern, Value Types vs Reference Types, and optimization techniques.
+
 
 # Async Programming and Multithreading in C# - Complete Guide
 
@@ -1155,15 +1496,34 @@ cts.Cancel();
 
 ## Chapter 7: Interview Questions
 
-1. What is the difference between Task and Thread?
-2. When should you use async/await over Task.Run()?
-3. What is a deadlock, and how do you prevent it in async code?
-4. What is the difference between Parallel.For and Task.Run()?
-5. How can you cancel a Task?
-6. What is ConfigureAwait(false), and when should you use it?
+
+1. **What is the difference between Task and Thread?**
+
+   * Task is a higher-level API for concurrency, managed by the Task Scheduler, while Thread is a lower-level construct for creating threads manually.
+
+2. **When should you use async/await over Task.Run()?**
+
+   * Use async/await for I/O-bound tasks (e.g., network calls). Use Task.Run() for CPU-bound tasks in console applications.
+
+3. **What is a deadlock, and how do you prevent it in async code?**
+
+   * A deadlock occurs when two tasks wait for each other, causing a freeze. Prevent it using ConfigureAwait(false) for library code.
+
+4. **What is the difference between Parallel.For and Task.Run()?**
+
+   * Parallel.For is for data parallelism (multiple iterations), while Task.Run is for launching a background task.
+
+5. **How can you cancel a Task?**
+
+   * Use a CancellationToken and pass it to the Task method.
+
+6. **What is ConfigureAwait(false), and when should you use it?**
+
+   * It prevents async tasks from capturing the current synchronization context, avoiding deadlocks in library code.
 
 ---
 
 ## Conclusion
 
 This guide provides a complete understanding of Async Programming and Multithreading in C#, including Threads, Tasks, Async/Await, and Parallel Programming. Mastering these concepts is essential for building scalable, responsive applications.
+
