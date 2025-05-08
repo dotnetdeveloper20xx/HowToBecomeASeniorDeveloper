@@ -675,4 +675,242 @@ var emailService = HttpContext.RequestServices.GetService<IEmailService>();
 
 This guide provides a complete understanding of Dependency Injection (DI) in ASP.NET Core, from basic to advanced techniques. Mastering DI is essential for building scalable, maintainable, and testable ASP.NET Core applications.
 
+# Memory Management in C# - Complete Guide
+
+## Introduction
+
+Memory management is a critical aspect of developing efficient and robust applications in C#. Understanding how memory is allocated, managed, and released can significantly improve application performance. This guide covers everything you need to know about memory management in C#, including:
+
+1. **Garbage Collection (GC)**
+2. **IDisposable and Dispose Pattern**
+3. **Value Types vs. Reference Types**
+
+We will explore each topic in detail with explanations, best practices, code examples, and common interview questions.
+
+---
+
+## Chapter 1: Garbage Collection (GC)
+
+### What is Garbage Collection?
+
+Garbage Collection (GC) is an automatic memory management feature in .NET that automatically frees unused objects from memory, preventing memory leaks.
+
+### How Garbage Collection Works
+
+* **Generational Garbage Collection:**
+
+  * Generation 0: Short-lived objects (frequent collections).
+  * Generation 1: Medium-lived objects (less frequent collections).
+  * Generation 2: Long-lived objects (rarely collected).
+* **GC Phases:**
+
+  1. Mark: Identifies live objects.
+  2. Sweep: Releases memory of dead objects.
+  3. Compact: Optimizes memory layout.
+
+### Code Example
+
+```csharp
+class Program
+{
+    static void Main()
+    {
+        for (int i = 0; i < 10000; i++)
+        {
+            var data = new byte[1024]; // Allocating memory
+        }
+
+        // Forcing GC Collection (Not recommended in production)
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+
+        Console.WriteLine("Garbage Collection Complete.");
+    }
+}
+```
+
+### Best Practices
+
+* Avoid manually calling `GC.Collect()`.
+* Minimize object allocations inside loops.
+* Use pooling for frequently used objects.
+
+### Interview Questions
+
+1. What is Garbage Collection?
+2. What are the GC generations?
+3. How does GC determine which objects to collect?
+
+---
+
+## Chapter 2: IDisposable and Dispose Pattern
+
+### What is IDisposable?
+
+IDisposable is an interface that defines a `Dispose()` method for releasing unmanaged resources (like file handles, database connections, etc.).
+
+### Why Use IDisposable?
+
+* To release unmanaged resources explicitly.
+* To prevent resource leaks.
+
+### Code Example
+
+```csharp
+public class FileManager : IDisposable
+{
+    private FileStream _fileStream;
+
+    public FileManager(string filePath)
+    {
+        _fileStream = new FileStream(filePath, FileMode.Open);
+    }
+
+    public void ReadFile()
+    {
+        Console.WriteLine("Reading file...");
+    }
+
+    // Implementing Dispose
+    public void Dispose()
+    {
+        _fileStream?.Dispose();
+        Console.WriteLine("File stream disposed.");
+    }
+}
+
+// Using IDisposable
+using (var fileManager = new FileManager("example.txt"))
+{
+    fileManager.ReadFile();
+}
+```
+
+### The Dispose Pattern (Advanced)
+
+* For complex classes, use a more robust Dispose pattern with a `finalizer`.
+
+```csharp
+public class ResourceManager : IDisposable
+{
+    private bool _disposed = false;
+
+    ~ResourceManager() // Finalizer
+    {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!_disposed)
+        {
+            if (disposing)
+            {
+                // Release managed resources
+            }
+            // Release unmanaged resources
+            _disposed = true;
+        }
+    }
+}
+```
+
+### Best Practices
+
+* Use `using` or `await using` blocks for IDisposable objects.
+* Always implement `Dispose` when using unmanaged resources.
+* Avoid finalizers unless necessary.
+
+### Interview Questions
+
+1. What is IDisposable?
+2. What is the Dispose Pattern?
+3. What is the difference between Dispose() and Finalize()?
+
+---
+
+## Chapter 3: Value Types vs Reference Types
+
+### What are Value Types and Reference Types?
+
+* **Value Types:** Stored on the stack. Copies are created when assigned.
+
+  * Examples: int, double, struct, bool.
+
+* **Reference Types:** Stored on the heap. A reference (pointer) is created.
+
+  * Examples: class, string, array, object.
+
+### Code Example
+
+```csharp
+// Value Type Example
+int a = 10;
+int b = a;
+b = 20;
+Console.WriteLine(a); // 10
+
+// Reference Type Example
+class Person
+{
+    public string Name { get; set; }
+}
+
+Person person1 = new Person { Name = "John" };
+Person person2 = person1;
+person2.Name = "Doe";
+Console.WriteLine(person1.Name); // Doe
+```
+
+### Best Practices
+
+* Use value types for small, simple data.
+* Use reference types for complex objects.
+* Understand the difference for performance optimization.
+
+### Interview Questions
+
+1. What are Value Types and Reference Types?
+2. How are Value Types and Reference Types stored in memory?
+3. Can you create a custom Value Type?
+
+---
+
+## Chapter 4: Best Practices and Common Pitfalls
+
+### Best Practices
+
+* Avoid unnecessary object allocations.
+* Use the `using` statement for IDisposable objects.
+* Use value types for small, immutable data.
+* Use reference types for complex objects.
+
+### Common Pitfalls
+
+* Misusing IDisposable without proper Dispose pattern.
+* Excessive object allocations (causing GC overhead).
+* Confusion between value and reference types.
+
+---
+
+## Chapter 5: Interview Questions
+
+1. What is Garbage Collection in C#?
+2. What is the difference between Dispose() and Finalize()?
+3. What are Value Types and Reference Types?
+4. What is the Dispose Pattern?
+5. When should you use IDisposable?
+6. How can you optimize memory management in C#?
+
+---
+
+## Conclusion
+
+This guide provides a complete understanding of Memory Management in C#, including Garbage Collection, IDisposable, and the differences between Value Types and Reference Types. Mastering these concepts is essential for building high-performance .NET applications.
 
