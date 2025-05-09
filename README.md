@@ -4828,5 +4828,137 @@ const App = () => (
 4. What is the difference between useRef and useState?
 5. How does React Suspense work for lazy loading components?
 
+# Mastering Angular Core Concepts (Components, Services, Modules)
+
+## 1. Angular Components
+
+### What is a Component?
+
+* A **Component** is a building block of an Angular application.
+* It is a class that controls a section of the user interface (UI).
+
+### Core Parts of a Component
+
+* **HTML Template**: Defines the UI (View).
+* **CSS Styles**: Defines the look and feel.
+* **Component Class (TypeScript)**: Defines logic and data handling.
+* **Decorator (@Component)**: Defines metadata about the component.
+
+### Example - Basic Angular Component
+
+```typescript
+// app.component.ts
+import { Component } from '@angular/core';
+
+@Component({
+  selector: 'app-root', // HTML tag to use this component
+  templateUrl: './app.component.html', // HTML file
+  styleUrls: ['./app.component.css'] // CSS file
+})
+export class AppComponent {
+  title = 'Angular Core Concepts';
+}
+```
+
+```html
+<!-- app.component.html -->
+<h1>{{ title }}</h1>
+```
+
+### What to Watch Out For
+
+* Component names must be **unique** within a module.
+* Always use the `@Component` decorator for components.
+* Keep the component logic simple, focusing on presentation.
+
+## 2. Angular Services
+
+### What is a Service?
+
+* A **Service** is a class with a specific purpose, typically for logic and data management.
+* Services promote code reusability and separation of concerns.
+
+### Core Characteristics
+
+* Services are injectable (using `@Injectable`).
+* Typically provide data to multiple components.
+* Often used with **Dependency Injection (DI)**.
+
+### Example - Basic Angular Service
+
+```typescript
+// app.service.ts
+import { Injectable } from '@angular/core';
+
+@Injectable({
+  providedIn: 'root' // Singleton service
+})
+export class AppService {
+  getData(): string {
+    return 'Hello from Service';
+  }
+}
+```
+
+### What to Watch Out For
+
+* Avoid making services handle UI logic.
+* Use `providedIn: 'root'` for singleton services.
+* Inject services in components using constructor injection.
+
+## 3. Angular Modules
+
+### What is a Module?
+
+* A **Module** is a logical container for related components, services, directives, and pipes.
+* It helps organize an Angular application into cohesive blocks.
+
+### Core Characteristics
+
+* Defined using the `@NgModule` decorator.
+* Can be imported into other modules.
+* Provides a way to bundle components and services.
+
+### Example - Basic Angular Module
+
+```typescript
+// app.module.ts
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppComponent } from './app.component';
+import { AppService } from './app.service';
+
+@NgModule({
+  declarations: [AppComponent],
+  imports: [BrowserModule],
+  providers: [AppService],
+  bootstrap: [AppComponent]
+})
+export class AppModule {}
+```
+
+### What to Watch Out For
+
+* Always declare components in a module.
+* Import necessary Angular modules (e.g., BrowserModule).
+* Provide services at the module level (for singleton).
+
+## Take-Home Points
+
+* Components focus on UI; Services focus on logic/data.
+* Modules help organize code into logical blocks.
+* Dependency Injection makes services reusable.
+
+## Advanced Technical Questions
+
+1. What is the difference between `providedIn: 'root'` and specifying a service in the `providers` array?
+2. Can you explain why a service declared in one module is not available in another module?
+3. How do you create a shared module, and why is it important?
+
+## Next Steps
+
+* Practice creating reusable components.
+* Experiment with service injection in components.
+* Create a shared module and use it in different feature modules.
 
 
