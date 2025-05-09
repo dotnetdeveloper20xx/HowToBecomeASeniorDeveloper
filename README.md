@@ -5860,6 +5860,88 @@ export class OrderComponent implements OnInit {
 
 // 🚀 This document will be updated with full implementation, including code for each component and service.
 
+// ✅ Step 11: User Management Module (Admin Only)
 
+// 1. UserService: Managing Users (Admin Only)
+```typescript
+// src/app/user/user.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class UserService {
+  private apiUrl = 'https://localhost:5001/api/users';
+
+  constructor(private http: HttpClient) {}
+
+  getAllUsers(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
+  }
+
+  getUserById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
+  updateUserRole(id: number, role: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/role`, { role });
+  }
+
+  deleteUser(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+}
+```
+
+// 2. UserComponent: Displaying and Managing Users (Admin Only)
+```html
+<!-- src/app/user/user.component.html -->
+<div *ngFor="let user of users">
+  <mat-card>
+    <h3>{{ user.email }}</h3>
+    <p>Role: {{ user.role }}</p>
+    <button mat-button (click)="promoteToAdmin(user)">Promote to Admin</button>
+    <button mat-button color="warn" (click)="deleteUser(user.id)">Delete</button>
+  </mat-card>
+</div>
+```
+
+```typescript
+// src/app/user/user.component.ts
+import { Component, OnInit } from '@angular/core';
+import { UserService } from './user.service';
+
+@Component({ selector: 'app-user', templateUrl: './user.component.html' })
+export class UserComponent implements OnInit {
+  users: any[] = [];
+
+  constructor(private userService: UserService) {}
+
+  ngOnInit() {
+    this.loadUsers();
+  }
+
+  loadUsers() {
+    this.userService.getAllUsers().subscribe(
+      (data) => (this.users = data),
+      (error) => console.error('Failed to load users', error)
+    );
+  }
+
+  promoteToAdmin(user: any) {
+    this.userService.updateUserRole(user.id, 'Admin').subscribe(() => this.loadUsers());
+  }
+
+  deleteUser(id: number) {
+    this.userService.deleteUser(id).subscribe(() => this.loadUsers());
+  }
+}
+```
+
+// 3. Secure Role-Based Access Control
+// - Only users with the 'Admin' role can access User Management.
+// - Role-based guards configured using AuthGuard.
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
 
 
