@@ -4961,8 +4961,9 @@ export class AppModule {}
 * Experiment with service injection in components.
 * Create a shared module and use it in different feature modules.
 
-// Angular E-Commerce Application
-// Setting up a complete Angular e-commerce application showcasing CRUD, Security, SignalR, and best practices.
+# Angular E-Commerce Application
+
+## Setting up a complete Angular e-commerce application showcasing CRUD, Security, SignalR, and best practices.
 
 // This Angular application will demonstrate:
 // - User Authentication and Authorization (JWT)
@@ -4973,92 +4974,574 @@ export class AppModule {}
 // - Best Practices (Routing, Services, Guards, Interceptors)
 // - Responsive UI with Angular Material
 
-// Initializing Angular Project
+// ✅ Step 1: Initial Project Setup
+
+// 1. Project Initialization
+// - Run the following command to create a new Angular project:
+```bash
 npx @angular/cli new ecommerce-app --routing --style=scss
 cd ecommerce-app
+```
 
-// Setting Up Angular Modules (Core, Auth, Product, Cart, Order)
+// 2. Configuring Angular Modules
+// - Core Module: Contains global services and utilities.
+// - Auth Module: Manages user authentication (Login, Register).
+// - Product Module: Manages Product CRUD operations.
+// - Cart Module: Manages Shopping Cart functionality.
+// - Order Module: Manages Order Placement and Tracking.
+
+// Command to create these modules:
+```bash
 ng g m core --module app --route core
 ng g m auth --module app --route auth
 ng g m product --module app --route product
 ng g m cart --module app --route cart
 ng g m order --module app --route order
+```
 
-// Setting Up User Authentication with JWT
-ng g s auth/auth --skip-tests
-// - Login, Register, Logout
-// - HTTP Interceptor for JWT token
+// 3. Configuring Angular Routing (Lazy Loading)
+// - Each module uses Lazy Loading to improve performance.
+// - AppRoutingModule configures routes with Lazy Loading syntax.
 
-// Configuring Product Management (CRUD)
-ng g c product/product-list --module product
-ng g c product/product-detail --module product
-ng g s product/product --skip-tests
+// src/app/app-routing.module.ts
+```typescript
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
 
-// Setting Up SignalR for Real-time Notifications
-ng add @microsoft/signalr
+const routes: Routes = [
+  { path: '', redirectTo: '/auth/login', pathMatch: 'full' },
+  { path: 'auth', loadChildren: () => import('./auth/auth.module').then(m => m.AuthModule) },
+  { path: 'product', loadChildren: () => import('./product/product.module').then(m => m.ProductModule) },
+  { path: 'cart', loadChildren: () => import('./cart/cart.module').then(m => m.CartModule) },
+  { path: 'order', loadChildren: () => import('./order/order.module').then(m => m.OrderModule) }
+];
 
-// Configuring State Management (NgRx)
-npm install @ngrx/store @ngrx/effects
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+```
 
-// Responsive UI with Angular Material
+// 4. Setting Up Angular Material
+```bash
 ng add @angular/material
+```
 
-// Routing Setup
-// - Lazy Loading for Modules
-// - Auth Guard for Protected Routes
+// - Configured Angular Material with a pre-built theme.
+// - Added Material Components for UI (MatButtonModule, MatCardModule, etc.).
 
-// Security Best Practices
-// - JWT Interceptor for Secure API Communication
-// - Error Handling with Interceptors
-// - Role-Based Access Control
+// 5. Setting Up NgRx (State Management)
+```bash
+npm install @ngrx/store @ngrx/effects
+```
 
-// Database Interaction
-// - API calls to secure ASP.NET Core Web API for CRUD operations.
+// - Store Module for Global State Management.
+// - Effects Module for Handling Side Effects (API Calls).
+// - Configured Root Store in AppModule.
 
+// src/app/app.module.ts
+```typescript
+import { StoreModule } from '@ngrx/store';
+import { EffectsModule } from '@ngrx/effects';
 
-// ✅ Step 1: Initial Project Setup
-// - Created the Angular project structure with key modules: Core, Auth, Product, Cart, Order.
-// - Configured Angular Routing with Lazy Loading.
-// - Installed Angular Material for UI.
-// - Set up NgRx for State Management.
+@NgModule({
+  declarations: [],
+  imports: [
+    StoreModule.forRoot({}, {}),
+    EffectsModule.forRoot([]),
+  ],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+```
+
+// 2. Configuring Angular Modules
+// - Core Module: Contains global services and utilities.
+// - Auth Module: Manages user authentication (Login, Register).
+// - Product Module: Manages Product CRUD operations.
+// - Cart Module: Manages Shopping Cart functionality.
+// - Order Module: Manages Order Placement and Tracking.
+
+// Command to create these modules:
+```bash
+ng g m core --module app --route core
+ng g m auth --module app --route auth
+ng g m product --module app --route product
+ng g m cart --module app --route cart
+ng g m order --module app --route order
+```
 
 // ✅ Step 2: User Authentication (JWT)
-// - Created Auth Module with Login, Register, Logout Components.
-// - Developed Authentication Service with JWT Handling.
-// - Configured HTTP Interceptor for JWT Authorization.
+
+// 1. Creating Authentication Components
+```bash
+ng g c auth/login --module auth
+ng g c auth/register --module auth
+```
+
+// 2. Developing Authentication Service
+```typescript
+// src/app/auth/auth.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private apiUrl = 'https://localhost:5001/api/auth';
+
+  constructor(private http: HttpClient) {}
+
+  login(credentials: { email: string; password: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, credentials);
+  }
+
+  register(user: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, user);
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+  }
+}
+```
+
+// 3. Configuring HTTP Interceptor for JWT
+```typescript
+// src/app/auth/jwt.interceptor.ts
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler } from '@angular/common/http';
+
+@Injectable()
+export class JwtInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    }
+    return next.handle(req);
+  }
+}
+```
+
+// 4. Registering the Interceptor
+```typescript
+// src/app/app.module.ts
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { JwtInterceptor } from './auth/jwt.interceptor';
+
+@NgModule({
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
+  ]
+})
+export class AppModule {}
+```
 
 // ✅ Step 3: Product Management (CRUD)
-// - Product List and Product Detail Components Created.
-// - Product Service for CRUD Operations (GET, POST, PUT, DELETE).
-// - API Integration with Secure ASP.NET Core Web API.
+
+// 1. Generating Product Components
+```bash
+ng g c product/product-list --module product
+ng g c product/product-detail --module product
+ng g c product/product-form --module product
+```
+
+// 2. Creating Product Service for CRUD Operations
+```typescript
+// src/app/product/product.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class ProductService {
+  private apiUrl = 'https://localhost:5001/api/products';
+
+  constructor(private http: HttpClient) {}
+
+  getAllProducts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
+  }
+
+  getProductById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
+  createProduct(product: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, product);
+  }
+
+  updateProduct(id: number, product: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, product);
+  }
+
+  deleteProduct(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+}
+```
+
+// 3. Product List and Detail Components (CRUD)
+```html
+<!-- src/app/product/product-list.component.html -->
+<div *ngFor="let product of products">
+  <mat-card>{{ product.name }}</mat-card>
+  <button mat-button (click)="editProduct(product)">Edit</button>
+  <button mat-button color="warn" (click)="deleteProduct(product.id)">Delete</button>
+</div>
+```
 
 // ✅ Step 4: SignalR Real-time Notifications
-// - Set up SignalR Service for real-time notifications.
-// - Configured Real-time Order Updates.
+
+// 1. Installing SignalR Client
+```bash
+npm install @microsoft/signalr
+```
+
+// 2. Creating SignalR Notification Service
+```typescript
+// src/app/core/signalr-notification.service.ts
+import { Injectable } from '@angular/core';
+import * as signalR from '@microsoft/signalr';
+
+@Injectable({ providedIn: 'root' })
+export class SignalRNotificationService {
+  private hubConnection!: signalR.HubConnection;
+
+  startConnection() {
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl('https://localhost:5001/notifications')
+      .build();
+
+    this.hubConnection.start().catch(err => console.error('SignalR Connection Error: ', err));
+  }
+
+  onOrderUpdated(callback: (message: string) => void) {
+    this.hubConnection.on('OrderUpdated', callback);
+  }
+}
+```
+
+// 3. Configuring SignalR in Order Module
+```typescript
+// src/app/order/order.component.ts
+import { Component, OnInit } from '@angular/core';
+import { SignalRNotificationService } from '../core/signalr-notification.service';
+
+@Component({ selector: 'app-order', templateUrl: './order.component.html' })
+export class OrderComponent implements OnInit {
+  notifications: string[] = [];
+
+  constructor(private signalRService: SignalRNotificationService) {}
+
+  ngOnInit() {
+    this.signalRService.startConnection();
+    this.signalRService.onOrderUpdated((message) => {
+      this.notifications.push(message);
+    });
+  }
+}
+```
+
 
 // ✅ Step 5: Secure API Integration
-// - Configured HTTP Interceptors for Secure API Requests.
-// - Set up Error Handling Interceptor for API Errors.
+
+// 1. Setting Up HTTP Interceptor for Secure API Requests
+```typescript
+// src/app/core/jwt.interceptor.ts
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable()
+export class JwtInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    const token = localStorage.getItem('token');
+    if (token) {
+      req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
+    }
+    return next.handle(req);
+  }
+}
+```
+
+// 2. Registering the Interceptor
+```typescript
+// src/app/app.module.ts
+import { HTTP_INTERCEPTORS } from '@angular/common/http';
+import { JwtInterceptor } from './core/jwt.interceptor';
+
+@NgModule({
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true }
+  ]
+})
+export class AppModule {}
+```
+
+// ✅ Step 5.2: Error Handling Interceptor
+
+// 1. Creating Error Handling Interceptor
+```typescript
+// src/app/core/error.interceptor.ts
+import { Injectable } from '@angular/core';
+import { HttpInterceptor, HttpRequest, HttpHandler, HttpEvent, HttpErrorResponse } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+
+@Injectable()
+export class ErrorInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    return next.handle(req).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('API Error:', error.message);
+        alert('An error occurred while processing your request.');
+        return throwError(() => error);
+      })
+    );
+  }
+}
+```
+
+// 2. Registering the Error Interceptor
+```typescript
+// src/app/app.module.ts
+import { ErrorInterceptor } from './core/error.interceptor';
+
+@NgModule({
+  providers: [
+    { provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true }
+  ]
+})
+export class AppModule {}
+```
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
 
 // ✅ Step 6: Database Integration
-// - API calls to secure ASP.NET Core Web API for CRUD operations.
-// - Database Interaction (SQL or Cosmos DB).
+
+// 1. Configuring Secure API Calls with ASP.NET Core Web API
+// - Backend API should be developed using ASP.NET Core.
+// - API Endpoints for Products, Orders, Cart, and Authentication.
+
+// 2. Product API Example (ASP.NET Core)
+```csharp
+[ApiController]
+[Route("api/products")]
+public class ProductsController : ControllerBase
+{
+    private readonly ApplicationDbContext _context;
+
+    public ProductsController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAllProducts()
+    {
+        var products = await _context.Products.ToListAsync();
+        return Ok(products);
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProduct(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null) return NotFound();
+        return Ok(product);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateProduct(Product product)
+    {
+        _context.Products.Add(product);
+        await _context.SaveChangesAsync();
+        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateProduct(int id, Product product)
+    {
+        if (id != product.Id) return BadRequest();
+        _context.Entry(product).State = EntityState.Modified;
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteProduct(int id)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null) return NotFound();
+        _context.Products.Remove(product);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+}
+```
+
+// 3. Database Setup (SQL Server)
+// - Using Entity Framework Core (EF Core) for Database Management.
+// - Connection string in appsettings.json:
+```json
+"ConnectionStrings": {
+  "DefaultConnection": "Server=localhost;Database=ECommerceDb;Trusted_Connection=True;"
+}
+```
+
+// 4. Entity Configuration (Product Entity)
+```csharp
+public class Product
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public decimal Price { get; set; }
+    public string Description { get; set; }
+    public string ImageUrl { get; set; }
+}
+```
+
+// 5. Securing API with JWT (Authentication)
+// - Ensure API uses JWT Authentication for secure access.
+// - Bearer token required for API calls.
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
 
 // ✅ Step 7: Implementation of Auth Module
-// - AuthService: Handles Login, Register, Logout with JWT.
-// - AuthGuard: Protects Routes for Authenticated Users.
-// - HTTP Interceptor: Attaches JWT Token to API Requests.
-// - LoginComponent: User Login Form and Logic.
-// - RegisterComponent: User Registration Form and Logic.
-// - Logout Functionality for Secure User Sign Out.
 
+// 1. AuthService: Managing Authentication
+```typescript
+// src/app/auth/auth.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class AuthService {
+  private apiUrl = 'https://localhost:5001/api/auth';
+
+  constructor(private http: HttpClient) {}
+
+  login(credentials: { email: string; password: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, credentials);
+  }
+
+  register(user: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/register`, user);
+  }
+
+  logout(): void {
+    localStorage.removeItem('token');
+  }
+
+  isAuthenticated(): boolean {
+    return !!localStorage.getItem('token');
+  }
+}
+```
+
+// 2. AuthGuard: Protecting Secure Routes
+```typescript
+// src/app/auth/auth.guard.ts
+import { Injectable } from '@angular/core';
+import { CanActivate, Router } from '@angular/router';
+import { AuthService } from './auth.service';
+
+@Injectable({ providedIn: 'root' })
+export class AuthGuard implements CanActivate {
+  constructor(private authService: AuthService, private router: Router) {}
+
+  canActivate(): boolean {
+    if (this.authService.isAuthenticated()) {
+      return true;
+    }
+    this.router.navigate(['/auth/login']);
+    return false;
+  }
+}
+```
+
+// 3. HTTP Interceptor: Attaching JWT Token
+// Already configured in Step 5 (JWT Interceptor).
+
+// 4. LoginComponent: User Login Form and Logic
+```html
+<!-- src/app/auth/login.component.html -->
+<form (ngSubmit)="onLogin()">
+  <input type="email" [(ngModel)]="email" name="email" placeholder="Email" required />
+  <input type="password" [(ngModel)]="password" name="password" placeholder="Password" required />
+  <button type="submit">Login</button>
+</form>
+```
+
+```typescript
+// src/app/auth/login.component.ts
+import { Component } from '@angular/core';
+import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
+
+@Component({ selector: 'app-login', templateUrl: './login.component.html' })
+export class LoginComponent {
+  email = '';
+  password = '';
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  onLogin() {
+    this.authService.login({ email: this.email, password: this.password }).subscribe(
+      () => this.router.navigate(['/product']),
+      (error) => alert('Login Failed')
+    );
+  }
+}
+```
+
+// 5. RegisterComponent: User Registration Form and Logic
+```html
+<!-- src/app/auth/register.component.html -->
+<form (ngSubmit)="onRegister()">
+  <input type="email" [(ngModel)]="email" name="email" placeholder="Email" required />
+  <input type="password" [(ngModel)]="password" name="password" placeholder="Password" required />
+  <button type="submit">Register</button>
+</form>
+```
+
+```typescript
+// src/app/auth/register.component.ts
+import { Component } from '@angular/core';
+import { AuthService } from './auth.service';
+import { Router } from '@angular/router';
+
+@Component({ selector: 'app-register', templateUrl: './register.component.html' })
+export class RegisterComponent {
+  email = '';
+  password = '';
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  onRegister() {
+    this.authService.register({ email: this.email, password: this.password }).subscribe(
+      () => this.router.navigate(['/auth/login']),
+      (error) => alert('Registration Failed')
+    );
+  }
+}
+```
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
+
+000000000000
 // ✅ Step 8: Product Management (CRUD) Implementation
 // - ProductService: Handles API Communication (GET, POST, PUT, DELETE).
 // - ProductListComponent: Displays List of Products.
 // - ProductDetailComponent: Displays Product Details.
 // - ProductFormComponent: Create or Edit Products.
 // - Error Handling for CRUD Operations.
-
+000000000000
 // ✅ Step 9: Cart Management (CRUD)
 // - CartService: Manages Cart Operations (Add, Remove, Update Items).
 // - CartComponent: Displays Cart Items.
