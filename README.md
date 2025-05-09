@@ -5729,49 +5729,6 @@ export class CartComponent implements OnInit {
 }
 ```
 
-// 3. Secure API Communication for Cart Management
-// - CartService communicates with secure API endpoints.
-// - JWT Interceptor ensures authenticated API calls.
-
-// 🚀 This document will be updated with full implementation, including code for each component and service.
-
-// Angular E-Commerce Application
-// Setting up a complete Angular e-commerce application showcasing CRUD, Security, SignalR, and best practices.
-
-// This Angular application will demonstrate:
-// - User Authentication and Authorization (JWT)
-// - Secure API Integration (ASP.NET Core Web API)
-// - CRUD Operations (Products, Categories, Users, Orders)
-// - Real-time Notifications with SignalR
-// - State Management (NgRx)
-// - Best Practices (Routing, Services, Guards, Interceptors)
-// - Responsive UI with Angular Material
-
-// ✅ Step 1: Initial Project Setup
-```bash
-npx @angular/cli new ecommerce-app --routing --style=scss
-cd ecommerce-app
-```
-
-// ✅ Step 2: User Authentication (JWT)
-```bash
-ng g c auth/login --module auth
-ng g c auth/register --module auth
-```
-
-// ✅ Step 3: Product Management (CRUD)
-```bash
-ng g c product/product-list --module product
-ng g c product/product-detail --module product
-ng g c product/product-form --module product
-```
-
-// ✅ Step 8: Product Management (CRUD) Implementation
-// (ProductService, ProductListComponent, ProductDetailComponent)
-
-// ✅ Step 9: Cart Management (CRUD)
-// (CartService, CartComponent)
-
 // ✅ Step 10: Order Management with SignalR
 
 // 1. OrderService: Handling Order Placement, Tracking, and Notifications
@@ -5852,13 +5809,6 @@ export class OrderComponent implements OnInit {
   }
 }
 ```
-
-// 3. Real-time Order Updates with SignalR
-// - SignalR is configured in OrderService.
-// - OrderComponent listens for real-time updates.
-// - Orders are displayed with real-time notifications.
-
-// 🚀 This document will be updated with full implementation, including code for each component and service.
 
 // ✅ Step 11: User Management Module (Admin Only)
 
