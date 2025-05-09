@@ -5534,25 +5534,332 @@ export class RegisterComponent {
 
 // 🚀 This document will be updated with full implementation, including code for each component and service.
 
-000000000000
 // ✅ Step 8: Product Management (CRUD) Implementation
-// - ProductService: Handles API Communication (GET, POST, PUT, DELETE).
-// - ProductListComponent: Displays List of Products.
-// - ProductDetailComponent: Displays Product Details.
-// - ProductFormComponent: Create or Edit Products.
-// - Error Handling for CRUD Operations.
-000000000000
+
+// 1. ProductService: Handling API Communication
+```typescript
+// src/app/product/product.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class ProductService {
+  private apiUrl = 'https://localhost:5001/api/products';
+
+  constructor(private http: HttpClient) {}
+
+  getAllProducts(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
+  }
+
+  getProductById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
+  createProduct(product: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, product);
+  }
+
+  updateProduct(id: number, product: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}`, product);
+  }
+
+  deleteProduct(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+}
+```
+
+// 2. ProductListComponent: Displaying Product List
+```html
+<!-- src/app/product/product-list.component.html -->
+<div *ngFor="let product of products">
+  <mat-card>
+    <h3>{{ product.name }}</h3>
+    <p>{{ product.description }}</p>
+    <p>Price: {{ product.price | currency }}</p>
+    <button mat-button (click)="editProduct(product)">Edit</button>
+    <button mat-button color="warn" (click)="deleteProduct(product.id)">Delete</button>
+  </mat-card>
+</div>
+```
+
+```typescript
+// src/app/product/product-list.component.ts
+import { Component, OnInit } from '@angular/core';
+import { ProductService } from './product.service';
+
+@Component({ selector: 'app-product-list', templateUrl: './product-list.component.html' })
+export class ProductListComponent implements OnInit {
+  products: any[] = [];
+
+  constructor(private productService: ProductService) {}
+
+  ngOnInit() {
+    this.loadProducts();
+  }
+
+  loadProducts() {
+    this.productService.getAllProducts().subscribe(
+      (data) => (this.products = data),
+      (error) => console.error('Failed to load products', error)
+    );
+  }
+
+  deleteProduct(id: number) {
+    this.productService.deleteProduct(id).subscribe(() => this.loadProducts());
+  }
+}
+```
+
+// 3. ProductDetailComponent: Displaying Product Details
+```html
+<!-- src/app/product/product-detail.component.html -->
+<h2>{{ product?.name }}</h2>
+<p>{{ product?.description }}</p>
+<p>Price: {{ product?.price | currency }}</p>
+```
+
+```typescript
+// src/app/product/product-detail.component.ts
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { ProductService } from './product.service';
+
+@Component({ selector: 'app-product-detail', templateUrl: './product-detail.component.html' })
+export class ProductDetailComponent implements OnInit {
+  product: any;
+
+  constructor(private route: ActivatedRoute, private productService: ProductService) {}
+
+  ngOnInit() {
+    const id = Number(this.route.snapshot.paramMap.get('id'));
+    this.productService.getProductById(id).subscribe(
+      (data) => (this.product = data),
+      (error) => console.error('Failed to load product details', error)
+    );
+  }
+}
+```
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
+
 // ✅ Step 9: Cart Management (CRUD)
-// - CartService: Manages Cart Operations (Add, Remove, Update Items).
-// - CartComponent: Displays Cart Items.
-// - CartItemComponent: Manages Single Cart Item.
-// - Secure API Communication for Cart Management.
+
+// 1. CartService: Managing Cart Operations
+```typescript
+// src/app/cart/cart.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+@Injectable({ providedIn: 'root' })
+export class CartService {
+  private apiUrl = 'https://localhost:5001/api/cart';
+
+  constructor(private http: HttpClient) {}
+
+  getCartItems(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
+  }
+
+  addToCart(item: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, item);
+  }
+
+  updateCartItem(item: any): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${item.id}`, item);
+  }
+
+  removeCartItem(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/${id}`);
+  }
+
+  clearCart(): Observable<any> {
+    return this.http.delete(`${this.apiUrl}`);
+  }
+}
+```
+
+// 2. CartComponent: Displaying Cart Items
+```html
+<!-- src/app/cart/cart.component.html -->
+<div *ngFor="let item of cartItems">
+  <mat-card>
+    <h3>{{ item.product.name }}</h3>
+    <p>Quantity: {{ item.quantity }}</p>
+    <p>Price: {{ item.product.price | currency }}</p>
+    <button mat-button (click)="removeItem(item.id)">Remove</button>
+  </mat-card>
+</div>
+
+<button mat-raised-button color="primary" (click)="checkout()">Checkout</button>
+```
+
+```typescript
+// src/app/cart/cart.component.ts
+import { Component, OnInit } from '@angular/core';
+import { CartService } from './cart.service';
+
+@Component({ selector: 'app-cart', templateUrl: './cart.component.html' })
+export class CartComponent implements OnInit {
+  cartItems: any[] = [];
+
+  constructor(private cartService: CartService) {}
+
+  ngOnInit() {
+    this.loadCart();
+  }
+
+  loadCart() {
+    this.cartService.getCartItems().subscribe(
+      (data) => (this.cartItems = data),
+      (error) => console.error('Failed to load cart items', error)
+    );
+  }
+
+  removeItem(id: number) {
+    this.cartService.removeCartItem(id).subscribe(() => this.loadCart());
+  }
+
+  checkout() {
+    alert('Proceed to checkout (functionality to be implemented)');
+  }
+}
+```
+
+// 3. Secure API Communication for Cart Management
+// - CartService communicates with secure API endpoints.
+// - JWT Interceptor ensures authenticated API calls.
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
+
+// Angular E-Commerce Application
+// Setting up a complete Angular e-commerce application showcasing CRUD, Security, SignalR, and best practices.
+
+// This Angular application will demonstrate:
+// - User Authentication and Authorization (JWT)
+// - Secure API Integration (ASP.NET Core Web API)
+// - CRUD Operations (Products, Categories, Users, Orders)
+// - Real-time Notifications with SignalR
+// - State Management (NgRx)
+// - Best Practices (Routing, Services, Guards, Interceptors)
+// - Responsive UI with Angular Material
+
+// ✅ Step 1: Initial Project Setup
+```bash
+npx @angular/cli new ecommerce-app --routing --style=scss
+cd ecommerce-app
+```
+
+// ✅ Step 2: User Authentication (JWT)
+```bash
+ng g c auth/login --module auth
+ng g c auth/register --module auth
+```
+
+// ✅ Step 3: Product Management (CRUD)
+```bash
+ng g c product/product-list --module product
+ng g c product/product-detail --module product
+ng g c product/product-form --module product
+```
+
+// ✅ Step 8: Product Management (CRUD) Implementation
+// (ProductService, ProductListComponent, ProductDetailComponent)
+
+// ✅ Step 9: Cart Management (CRUD)
+// (CartService, CartComponent)
 
 // ✅ Step 10: Order Management with SignalR
-// - OrderService: Handles Order Placement, Tracking, and Notifications.
-// - OrderComponent: Displays User Orders.
-// - OrderDetailComponent: Displays Order Details.
-// - Real-time Order Updates using SignalR.
+
+// 1. OrderService: Handling Order Placement, Tracking, and Notifications
+```typescript
+// src/app/order/order.service.ts
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import * as signalR from '@microsoft/signalr';
+
+@Injectable({ providedIn: 'root' })
+export class OrderService {
+  private apiUrl = 'https://localhost:5001/api/orders';
+  private hubConnection!: signalR.HubConnection;
+
+  constructor(private http: HttpClient) {}
+
+  placeOrder(order: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}`, order);
+  }
+
+  getOrders(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}`);
+  }
+
+  startSignalRConnection() {
+    this.hubConnection = new signalR.HubConnectionBuilder()
+      .withUrl('https://localhost:5001/ordersHub')
+      .build();
+
+    this.hubConnection.start().catch(err => console.error('SignalR Connection Error: ', err));
+  }
+
+  onOrderUpdate(callback: (message: string) => void) {
+    this.hubConnection.on('OrderUpdated', callback);
+  }
+}
+```
+
+// 2. OrderComponent: Displaying User Orders
+```html
+<!-- src/app/order/order.component.html -->
+<div *ngFor="let order of orders">
+  <mat-card>
+    <h3>Order #{{ order.id }}</h3>
+    <p>Status: {{ order.status }}</p>
+  </mat-card>
+</div>
+```
+
+```typescript
+// src/app/order/order.component.ts
+import { Component, OnInit } from '@angular/core';
+import { OrderService } from './order.service';
+
+@Component({ selector: 'app-order', templateUrl: './order.component.html' })
+export class OrderComponent implements OnInit {
+  orders: any[] = [];
+  notifications: string[] = [];
+
+  constructor(private orderService: OrderService) {}
+
+  ngOnInit() {
+    this.loadOrders();
+    this.setupSignalR();
+  }
+
+  loadOrders() {
+    this.orderService.getOrders().subscribe(
+      (data) => (this.orders = data),
+      (error) => console.error('Failed to load orders', error)
+    );
+  }
+
+  setupSignalR() {
+    this.orderService.startSignalRConnection();
+    this.orderService.onOrderUpdate((message) => this.notifications.push(message));
+  }
+}
+```
+
+// 3. Real-time Order Updates with SignalR
+// - SignalR is configured in OrderService.
+// - OrderComponent listens for real-time updates.
+// - Orders are displayed with real-time notifications.
+
+// 🚀 This document will be updated with full implementation, including code for each component and service.
+
 
 
 
